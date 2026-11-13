@@ -1,0 +1,15 @@
+services:
+  armurerie:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATA_DIR: /data
+      PORT: 3000
+    ports:
+      # Accessible seulement depuis le serveur : exposé en HTTPS par Caddy.
+      - "127.0.0.1:3130:3000"
+    volumes:
+      - donnees:/data
+
+volumes:
+  donnees:

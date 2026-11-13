@@ -1,0 +1,75 @@
+:root {
+  --bg: #0f1115;
+  --panel: #181b22;
+  --line: #2a2f3a;
+  --text: #e6e3da;
+  --muted: #9a978d;
+  --gold: #e8b85a;
+  --danger: #e0645a;
+  --q-poor: #9d9d9d; --q-common: #ffffff; --q-uncommon: #1eff00;
+  --q-rare: #0070dd; --q-epic: #a335ee; --q-legendary: #ff8000;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+h1 { margin: 0; font-size: 20px; color: var(--gold); letter-spacing: .02em; }
+form, .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tools { margin-left: auto; }
+input, select, button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+input { min-width: 220px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--gold); }
+button:disabled { opacity: .5; cursor: progress; }
+#status { color: var(--muted); font-size: 13px; }
+#error { margin: 12px 20px 0; padding: 8px 12px; border: 1px solid var(--danger); border-radius: 6px; color: var(--danger); }
+
+main { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; padding: 20px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.card.alliance { border-top: 3px solid #3a6fd8; }
+.card.horde { border-top: 3px solid #c0392b; }
+.top { display: flex; gap: 12px; padding: 14px; align-items: center; }
+.avatar { width: 64px; height: 64px; border-radius: 8px; background: #222 center/cover; flex: none; }
+.who { flex: 1; min-width: 0; }
+.who h2 { margin: 0; font-size: 18px; }
+.who h2 a { color: inherit; text-decoration: none; }
+.who h2 a:hover { text-decoration: underline; }
+.who .sub { color: var(--muted); font-size: 13px; }
+.lvl { font-size: 28px; font-weight: 700; color: var(--gold); text-align: center; line-height: 1; }
+.lvl small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
+
+.class-druid { color: #ff7c0a; } .class-hunter { color: #aad372; } .class-mage { color: #3fc7eb; }
+.class-paladin { color: #f48cba; } .class-priest { color: #ffffff; } .class-rogue { color: #fff468; }
+.class-shaman { color: #0070dd; } .class-warlock { color: #8788ee; } .class-warrior { color: #c69b6d; }
+
+.body { padding: 0 14px 12px; display: grid; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; }
+.chip img { width: 16px; height: 16px; border-radius: 3px; }
+.gear { display: flex; flex-wrap: wrap; gap: 4px; }
+.gear a { display: block; width: 36px; height: 36px; border: 2px solid var(--q-common); border-radius: 5px; background: #000 center/cover; }
+.gear a.POOR { border-color: var(--q-poor); } .gear a.UNCOMMON { border-color: var(--q-uncommon); }
+.gear a.RARE { border-color: var(--q-rare); } .gear a.EPIC { border-color: var(--q-epic); }
+.gear a.LEGENDARY { border-color: var(--q-legendary); }
+.foot { margin-top: auto; display: flex; gap: 8px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.foot .grow { flex: 1; }
+.foot button { padding: 3px 8px; font-size: 12px; }
+.foot .del:hover { border-color: var(--danger); color: var(--danger); }
+.msg { padding: 0 14px 12px; color: var(--muted); font-size: 13px; }
+.msg.err { color: var(--danger); }
+.spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 480px) {
+  header { padding: 12px 16px; }
+  main { padding: 16px; grid-template-columns: 1fr; }
+  input { min-width: 0; flex: 1; }
+  .tools { margin-left: 0; }
+}
+
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+.instances { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.instances li { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 3px 6px; border-radius: 5px; background: #ffffff08; cursor: help; }
+.instances li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.instances li img { width: 18px; height: 18px; border-radius: 3px; }
+.instances li b { font-weight: 600; color: var(--muted); }
+.instances li.done b { color: var(--q-uncommon); }

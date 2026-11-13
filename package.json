@@ -1,0 +1,7 @@
+{
+  "name": "armurerie",
+  "private": true,
+  "description": "Gestionnaire de personnages WoW Forever à partir de l'armurerie officielle",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
