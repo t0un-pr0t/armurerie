@@ -24,9 +24,17 @@ button:disabled { opacity: .5; cursor: progress; }
 #error { margin: 12px 20px 0; padding: 8px 12px; border: 1px solid var(--danger); border-radius: 6px; color: var(--danger); }
 
 main { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; padding: 20px; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
-.card.alliance { border-top: 3px solid #3a6fd8; }
-.card.horde { border-top: 3px solid #c0392b; }
+/* --cls : couleur de la classe du personnage (contour, lueur, nom). */
+.card { --cls: var(--line); background: var(--panel); border: 2px solid var(--cls); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.card[class*="cls-"]:not(.cls-) {
+  box-shadow: 0 0 22px -8px var(--cls);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cls) 16%, var(--panel)) 0, var(--panel) 120px);
+}
+.card[class*="cls-"]:not(.cls-) .who h2 a { color: var(--cls); }
+.cls-name { color: var(--cls); font-weight: 600; }
+.faction { margin-left: 4px; padding: 0 6px; border-radius: 4px; font-size: 11px; color: #fff; }
+.faction.alliance { background: #2f5bb7; }
+.faction.horde { background: #a8322a; }
 .top { display: flex; gap: 12px; padding: 14px; align-items: center; }
 .avatar { width: 64px; height: 64px; border-radius: 8px; background: #222 center/cover; flex: none; }
 .who { flex: 1; min-width: 0; }
@@ -37,9 +45,12 @@ main { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr
 .lvl { font-size: 28px; font-weight: 700; color: var(--gold); text-align: center; line-height: 1; }
 .lvl small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
 
-.class-druid { color: #ff7c0a; } .class-hunter { color: #aad372; } .class-mage { color: #3fc7eb; }
-.class-paladin { color: #f48cba; } .class-priest { color: #ffffff; } .class-rogue { color: #fff468; }
-.class-shaman { color: #0070dd; } .class-warlock { color: #8788ee; } .class-warrior { color: #c69b6d; }
+/* Couleurs officielles des classes. */
+.cls-druid { --cls: #ff7c0a; } .cls-hunter { --cls: #aad372; } .cls-mage { --cls: #3fc7eb; }
+.cls-paladin { --cls: #f48cba; } .cls-priest { --cls: #ffffff; } .cls-rogue { --cls: #fff468; }
+.cls-shaman { --cls: #0070dd; } .cls-warlock { --cls: #8788ee; } .cls-warrior { --cls: #c69b6d; }
+.cls-death-knight, .cls-deathknight { --cls: #c41e3a; } .cls-monk { --cls: #00ff98; }
+.cls-demon-hunter, .cls-demonhunter { --cls: #a330c9; } .cls-evoker { --cls: #33937f; }
 
 .body { padding: 0 14px 12px; display: grid; gap: 10px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }

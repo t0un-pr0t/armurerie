@@ -70,12 +70,14 @@ function card(c) {
   }).join('');
   const stale = c.status !== 'ok' ? `<div class="msg err">Dernière lecture en échec : ${esc(c.error)}</div>` : '';
 
-  return `<article class="card ${p.faction === 'HORDE' ? 'horde' : 'alliance'}">
+  const horde = p.faction === 'HORDE';
+  return `<article class="card cls-${esc(p.classSlug)}">
     <div class="top">
       <div class="avatar" style="background-image:url('${esc(p.avatar)}')"></div>
       <div class="who">
         <h2><a href="${esc(c.armoryUrl)}" target="_blank" rel="noopener">${esc(p.name)} ${esc(p.surname)}</a></h2>
-        <div class="sub"><span class="class-${esc(p.classSlug)}">${esc(p.race)} · ${esc(p.class)}</span></div>
+        <div class="sub"><span class="cls-name">${esc(p.class)}</span> · ${esc(p.race)}
+          <span class="faction ${horde ? 'horde' : 'alliance'}">${horde ? 'Horde' : 'Alliance'}</span></div>
         <div class="sub">${esc(p.ruleset)} · ${esc(p.region.toUpperCase())} · niv. objets ${p.itemLevel ?? '—'}</div>
       </div>
       <div class="lvl">${p.level}<small>niveau</small></div>
