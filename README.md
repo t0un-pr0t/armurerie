@@ -27,6 +27,21 @@ Variables d'environnement facultatives :
 - Un personnage absent de l'armurerie (pas encore indexé, nom mal orthographié) est affiché
   « introuvable » et retenté à chaque passage.
 
+## Simulateur de duel druide
+
+`/simulateur/` (dossier `public/simulateur`, repris de druidhow) : duels d'un druide farouche contre les
+spécialisations jouées en duel, en ours et en félin, à son niveau, avec cinématique, guide par adversaire,
+calculateur de talents et conseils pour gagner (talents, statistiques, enchantements, points d'héritage).
+Tout le calcul se fait dans le navigateur, en JavaScript sans compilation.
+
+- À chaque lecture d'un druide, le serveur convertit sa fiche Blizzard pour le moteur (`druide.js` :
+  talents reconnus par leur nom, stats ramenées au format du moteur, objets) ;
+  `GET /api/druides` renvoie ces druides, que la page charge au démarrage.
+- Le bouton « Simuler » d'une carte de druide ouvre `/simulateur/?perso=<région>/<slug>#armurerie`.
+- Les valeurs du jeu sont dans `public/simulateur/js/donnees.js`, le moteur dans `moteur.js`.
+
+Tests : `npm test` (moteur, icônes, conseiller, conversion sur la fiche figée `tests/fixtures/ohm-let.json`).
+
 ## Déploiement
 
 En ligne sur https://armurerie.lefournilcreatif.fr :

@@ -34,9 +34,9 @@ async function api(method, url, body) {
 function card(c) {
   const p = c.profile;
   const title = `${esc(c.name)} ${esc(c.surname)}`;
-  const foot = `
+  const foot = (extra = '') => `
     <div class="foot">
-      <span class="grow">${c.refreshing ? '<span class="spin">⟳</span> mise à jour…'
+      ${extra}<span class="grow">${c.refreshing ? '<span class="spin">⟳</span> mise à jour…'
         : `Lu ${ago(c.fetchedAt || c.attemptedAt)}${p?.armoryUpdatedAt ? ` · armurerie ${ago(p.armoryUpdatedAt)}` : ''}`}</span>
       <button data-act="refresh" data-key="${esc(c.key)}" title="Réactualiser">⟳</button>
       <button class="del" data-act="delete" data-key="${esc(c.key)}" title="Retirer">✕</button>
@@ -48,7 +48,7 @@ function card(c) {
       <div class="top"><div class="avatar"></div><div class="who">
         <h2><a href="${esc(c.armoryUrl)}" target="_blank" rel="noopener">${title}</a></h2>
         <div class="sub">${esc(c.region.toUpperCase())}</div></div></div>
-      <div class="msg ${c.status === 'pending' ? '' : 'err'}">${msg}</div>${foot}</article>`;
+      <div class="msg ${c.status === 'pending' ? '' : 'err'}">${msg}</div>${foot()}</article>`;
   }
 
   const specs = p.specs.filter((s) => s.points > 0)
@@ -69,6 +69,8 @@ function card(c) {
       <b>${d.count ?? 0}/${d.total ?? '?'}</b></li>`;
   }).join('');
   const stale = c.status !== 'ok' ? `<div class="msg err">Dernière lecture en échec : ${esc(c.error)}</div>` : '';
+  const sim = p.classSlug === 'druid'
+    ? `<a class="lien-sim" href="/simulateur/?perso=${encodeURIComponent(c.key)}#armurerie" title="Duels contre chaque spécialisation et conseils">Simuler</a>` : '';
 
   const horde = p.faction === 'HORDE';
   return `<article class="card cls-${esc(p.classSlug)}">
@@ -93,7 +95,7 @@ function card(c) {
       ${gear ? `<div class="gear">${gear}</div>` : ''}
       ${instances ? `<div><div class="label">Donjons et raids</div><ul class="instances">${instances}</ul></div>` : ''}
     </div>
-    ${stale}${foot}</article>`;
+    ${stale}${foot(sim)}</article>`;
 }
 
 let state = null;

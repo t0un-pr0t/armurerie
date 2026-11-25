@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body { margin: 0; } img { max-width: 100%; } [hidden] { display: none !important; }</style>
+<title>Druidhow · Armurerie Forever</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Mise en page : un bandeau d'en-tête, cinq onglets ; le simulateur en deux colonnes
+   (réglages à gauche, résultats à droite) qui passent l'une sous l'autre sur téléphone. */
+:root {
+  --bg: #edf0e8;
+  --surface: #f8faf5;
+  --surface-2: #e3e8dc;
+  --ink: #1b2219;
+  --ink-2: #485445;
+  --muted: #6e7a6a;
+  --line: #cfd7c8;
+  --accent: #b5500b;
+  --accent-ink: #ffffff;
+  --accent-soft: #f6e2d1;
+  --serie-druide: #c2560c;
+  --serie-adv: #3560b0;
+  --mana: #2c63c4;
+  --rage: #b8352a;
+  --energie: #9a7700;
+  --vie: #2f7d36;
+  --forme-ours: #8a5a34;
+  --forme-felin: #c9a227;
+  --forme-humain: #6e9a66;
+  --sol: #d5ddca;
+  --bon: #2f7d36;
+  --moyen: #9a7700;
+  --mauvais: #b8352a;
+  --focus: #b5500b;
+  --q-commun: #4d554b; --q-inhabituel: #1d7d1d; --q-rare: #1f5fbf; --q-epique: #7f32b8; --q-legendaire: #b8580b;
+  --f-titre: "Alegreya SC", "Palatino Linotype", Palatino, Georgia, serif;
+  --f-texte: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --f-donnee: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111611; --surface: #1a211a; --surface-2: #232c22; --ink: #e6ebe2; --ink-2: #b2bcad; --muted: #848f80;
+    --line: #2f3a2e; --accent: #e8822c; --accent-ink: #1a1208; --accent-soft: #3a2614;
+    --serie-druide: #d96d16; --serie-adv: #6a8fe0; --mana: #6a9cf0; --rage: #ec6a5b; --energie: #e0bd3a; --vie: #62c06a;
+    --forme-ours: #b07a4c; --forme-felin: #d8b43c; --forme-humain: #7fb276; --sol: #2b3529;
+    --bon: #62c06a; --moyen: #e0bd3a; --mauvais: #ec6a5b; --focus: #e8822c;
+    --q-commun: #c9cfc5; --q-inhabituel: #4ccb4c; --q-rare: #4d97f0; --q-epique: #b47cf0; --q-legendaire: #f0903a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111611; --surface: #1a211a; --surface-2: #232c22; --ink: #e6ebe2; --ink-2: #b2bcad; --muted: #848f80;
+  --line: #2f3a2e; --accent: #e8822c; --accent-ink: #1a1208; --accent-soft: #3a2614;
+  --serie-druide: #d96d16; --serie-adv: #6a8fe0; --mana: #6a9cf0; --rage: #ec6a5b; --energie: #e0bd3a; --vie: #62c06a;
+  --forme-ours: #b07a4c; --forme-felin: #d8b43c; --forme-humain: #7fb276; --sol: #2b3529;
+  --bon: #62c06a; --moyen: #e0bd3a; --mauvais: #ec6a5b; --focus: #e8822c;
+  --q-commun: #c9cfc5; --q-inhabituel: #4ccb4c; --q-rare: #4d97f0; --q-epique: #b47cf0; --q-legendaire: #f0903a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-texte); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.page { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-titre); font-weight: 700; text-wrap: balance; line-height: 1.15; margin: 0; }
+h2 { font-size: 1.45rem; }
+h3 { font-size: 1.12rem; }
+p { margin: 0; }
+.num, .mono { font-family: var(--f-donnee); font-variant-numeric: tabular-nums; }
+.etiquette { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.discret { color: var(--muted); }
+.prose { max-width: 66ch; color: var(--ink-2); }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* En-tête */
+.entete { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-block: 28px 18px; border-bottom: 1px solid var(--line); }
+.entete h1 { font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: .01em; }
+.entete h1 span { color: var(--accent); }
+.retour-armurerie { display: inline-block; margin-bottom: 6px; font-size: .9rem; }
+.entete .sous { color: var(--ink-2); max-width: 60ch; margin-top: 4px; }
+.profil { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .9rem; }
+.profil div { display: grid; }
+.profil b { font-family: var(--f-donnee); font-weight: 500; font-size: .95rem; }
+
+/* Onglets : cinq cartes (icône, titre, état en une ligne) ; sur téléphone, une bande de pilules qui défile */
+.onglets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding-block: 16px; margin-bottom: 8px; }
+.onglets button { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 10px; align-items: center; min-width: 0; padding: 9px 12px 10px 10px; text-align: left; cursor: pointer; border: 1px solid var(--line); border-radius: calc(var(--r) + 2px); background: var(--surface); color: var(--ink-2); transition: border-color .15s, background-color .15s; }
+.onglets img { grid-row: 1 / 3; width: 34px; height: 34px; border-radius: 5px; box-shadow: 0 0 0 1px var(--line); filter: saturate(.45); opacity: .85; transition: filter .15s, opacity .15s; }
+.onglets .titre { font-family: var(--f-titre); font-size: 1.08rem; font-weight: 700; line-height: 1.15; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.onglets .indice { font-size: .78rem; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.onglets button:hover { border-color: var(--muted); }
+.onglets button:hover img, .onglets button[aria-selected="true"] img { filter: none; opacity: 1; }
+.onglets button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.onglets button[aria-selected="true"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
+.onglets button[aria-selected="true"] .indice { color: var(--ink-2); }
+@media (max-width: 900px) {
+  .onglets { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; scroll-padding-inline: 24px; padding-block: 14px; overscroll-behavior-x: contain; }
+  .onglets::-webkit-scrollbar { display: none; }
+  .onglets[data-plus~="droite"] { mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+  .onglets[data-plus~="gauche"] { mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
+  .onglets[data-plus~="gauche"][data-plus~="droite"] { mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+  .onglets button { flex: none; grid-template-columns: 24px auto; column-gap: 8px; padding: 5px 14px 5px 5px; border-radius: 99px; }
+  .onglets img { grid-row: auto; width: 24px; height: 24px; border-radius: 50%; }
+  .onglets .titre { font-size: 1rem; }
+  .onglets .indice { display: none; }
+  .onglets button[aria-selected="true"]::after { display: none; }
+}
+a { color: var(--accent); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+
+/* Boutons et champs */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--muted); }
+.btn.principal { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn.principal:hover { filter: brightness(1.07); }
+.btn:disabled { opacity: .55; cursor: progress; }
+.champ { display: grid; gap: 4px; }
+.champ label, .champ .etiquette { font-size: .78rem; }
+select, input[type="number"] { width: 100%; line-height: 1.35; padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.case { display: flex; gap: 8px; align-items: center; font-size: .95rem; }
+.case input { accent-color: var(--accent); width: 18px; height: 18px; }
+.segments { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.segments button { flex: 1; border: 0; background: none; padding: 7px 6px; cursor: pointer; font-weight: 500; border-left: 1px solid var(--line); }
+.segments button:first-child { border-left: 0; }
+.segments button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+
+/* Simulateur */
+.simu { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 860px) { .simu { grid-template-columns: minmax(0, 1fr); } }
+.reglages { display: grid; gap: 16px; }
+.bloc { display: grid; gap: 10px; }
+.adversaires { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.adv { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 8px 10px; cursor: pointer; display: grid; gap: 1px; }
+.adv b { font-family: var(--f-titre); font-size: 1.02rem; }
+.adv small { color: var(--muted); font-size: .78rem; }
+.adv[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.grille2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+details.plus summary { cursor: pointer; color: var(--ink-2); font-weight: 500; }
+details.plus[open] summary { margin-bottom: 10px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.resultats { display: grid; gap: 22px; min-width: 0; }
+.panneau { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.verdict { display: grid; gap: 6px; }
+.verdict .ligne1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.verdict .ligne1 h2 { font-size: 1.6rem; }
+.pastille { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 99px; font-size: .82rem; font-weight: 700; border: 1px solid currentColor; }
+.pastille.bon { color: var(--bon); } .pastille.moyen { color: var(--moyen); } .pastille.mauvais { color: var(--mauvais); }
+.formes { display: grid; gap: 12px; }
+.forme-ligne { display: grid; grid-template-columns: 92px minmax(0, 1fr) 64px; gap: 12px; align-items: center; }
+.forme-ligne .nom { font-family: var(--f-titre); font-size: 1.05rem; }
+.forme-ligne .nom small { display: block; font-family: var(--f-texte); font-size: .75rem; color: var(--muted); }
+.forme-ligne .taux { font-family: var(--f-donnee); font-size: 1.15rem; text-align: right; }
+.forme-ligne.conseil .nom { color: var(--accent); }
+.barre { display: flex; height: 14px; gap: 2px; }
+.barre span { display: block; height: 100%; min-width: 0; }
+.barre span:first-child { border-radius: 4px 0 0 4px; }
+.barre span:last-child { border-radius: 0 4px 4px 0; }
+.barre .v { background: var(--bon); } .barre .n { background: var(--line); } .barre .d { background: var(--mauvais); opacity: .8; }
+.legende-barre { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--ink-2); }
+.legende-barre i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 18px; }
+.chiffres div { display: grid; }
+.chiffres b { font-family: var(--f-donnee); font-weight: 500; font-size: 1.05rem; }
+.tableau { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: .74rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+td.n, th.n { text-align: right; font-family: var(--f-donnee); font-variant-numeric: tabular-nums; }
+.repartition { display: grid; gap: 6px; }
+.rep { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: .88rem; align-items: center; }
+.rep .trait { grid-column: 1 / -1; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.rep .trait span { display: block; height: 100%; background: var(--serie-druide); border-radius: 3px; }
+.rep.adv-src .trait span { background: var(--serie-adv); }
+.rep .v { text-align: right; font-family: var(--f-donnee); color: var(--ink-2); white-space: nowrap; font-size: .82rem; }
+.deux { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 620px) { .deux { grid-template-columns: minmax(0, 1fr); } }
+
+/* Cinématique : deux cadres d'unité, une arène vue de côté, une frise des sorts */
+.puce { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 3px 12px; cursor: pointer; font-size: .85rem; }
+.puce[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 8px; }
+.scenario { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 8px 10px; cursor: pointer; display: grid; gap: 1px; align-content: start; }
+.scenario[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.scenario b { font-family: var(--f-titre); font-size: .95rem; display: flex; align-items: center; gap: 7px; }
+.scenario b i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.scenario.druide b i { background: var(--bon); } .scenario.adv b i { background: var(--mauvais); }
+.scenario small { color: var(--ink-2); font-size: .82rem; }
+.scenario .num { font-size: .78rem; color: var(--muted); }
+.scene { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); overflow: hidden; display: grid; transition: opacity .2s; }
+.perime .scene, .perime .frise, .perime .decomptes { opacity: .45; }
+.cadres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
+.cadre { background: var(--surface); padding: 10px 12px; display: grid; gap: 5px; min-width: 0; }
+.cadre .tete { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 1.6em; }
+.ico { flex: none; display: block; border-radius: 3px; object-fit: cover; box-shadow: 0 0 0 1px var(--line); }
+.ico.vide { background: var(--surface-2); box-shadow: none; }
+.cadre .tete b { font-family: var(--f-titre); font-size: 1.05rem; }
+.cadre .tete .sous-nom { font-size: .8rem; color: var(--muted); }
+.cadre .tete .cc { font-size: .72rem; font-weight: 700; padding: 0 8px; border-radius: 99px; background: var(--accent-soft); color: var(--ink); border: 1px solid var(--accent); }
+.rangee { display: grid; grid-template-columns: minmax(0, 1fr) 12ch; gap: 8px; align-items: center; }
+.rangee .val { font-family: var(--f-donnee); font-size: .74rem; color: var(--ink-2); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.jauge { height: 10px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.jauge.fine { height: 6px; }
+.jauge span { display: block; height: 100%; background: var(--vie); transform-origin: left; }
+.pips { display: flex; gap: 3px; height: 6px; }
+.pips i { flex: 1; border-radius: 2px; background: var(--surface-2); }
+.pips i.on { background: var(--accent); }
+.fil { height: 22px; display: flex; gap: 4px; overflow: hidden; align-items: center; }
+.fil > span { flex: none; display: inline-flex; align-items: center; gap: 5px; font-size: .78rem; padding: 0 7px 0 1px; border-radius: 4px; color: var(--muted); white-space: nowrap; border: 1px solid transparent; }
+.fil > span:not(.neuf) .ico { opacity: .7; }
+.fil > span.neuf { color: var(--ink); background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
+.incant { position: relative; display: flex; align-items: center; height: 20px; width: 100%; border-radius: 4px; background: var(--surface-2); overflow: hidden; font-size: .76rem; }
+.incant .ico { position: relative; margin-left: 1px; }
+.incant i { position: absolute; inset: 0; background: var(--accent-soft); transform-origin: left; box-shadow: inset -2px 0 0 var(--accent); }
+.incant b { position: relative; padding-inline: 7px; line-height: 20px; font-weight: 500; white-space: nowrap; }
+.arene { position: relative; height: 186px; overflow: hidden; background: linear-gradient(to bottom, var(--surface-2) 0 140px, var(--sol) 140px); }
+.monde { position: absolute; inset: 0 26px; }
+.repere { position: absolute; top: 140px; padding-top: 24px; transform: translateX(-50%); font-family: var(--f-donnee); font-size: .64rem; color: var(--muted); white-space: nowrap; }
+.repere::before { content: ""; position: absolute; left: 50%; top: 0; height: 6px; border-left: 1px solid var(--muted); }
+.lien { position: absolute; top: 124px; border-top: 1px dashed var(--muted); }
+.ecart { position: absolute; top: 107px; transform: translateX(-50%); font-family: var(--f-donnee); font-size: .7rem; color: var(--muted); white-space: nowrap; }
+.jeton { position: absolute; top: 104px; width: 34px; height: 34px; margin-left: -17px; border-radius: 50%; border: 2px solid var(--serie-adv); box-shadow: 0 0 0 2px var(--surface), 0 2px 5px rgb(0 0 0 / .3); background: var(--serie-adv) center / cover no-repeat; }
+.jeton.controle { outline: 2px dashed var(--accent); outline-offset: 4px; }
+.jeton.cache { opacity: .35; border-style: dashed; }
+/* Druide : un point d'ancrage au sol, la silhouette de la forme courante posée dessus */
+.druide-fig { position: absolute; top: 140px; width: 0; height: 0; }
+.druide-fig::before { content: ""; position: absolute; left: -26px; top: -3px; width: 52px; height: 6px; border-radius: 50%; background: rgb(0 0 0 / .18); }
+.druide-fig.controle::after { content: ""; position: absolute; left: -34px; top: -8px; width: 68px; height: 16px; border-radius: 50%; border: 2px dashed var(--accent); box-sizing: border-box; }
+.silhouette { position: absolute; left: 0; bottom: 0; transform: translateX(-50%) scale(.6); transform-origin: 50% 100%; opacity: 0; transition: opacity .22s, transform .22s; }
+.silhouette.on { opacity: 1; transform: translateX(-50%); }
+.druide-fig.cache .silhouette.on { opacity: .35; }
+.silhouette svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.silhouette[data-forme="ours"] { --c: var(--forme-ours); }
+.silhouette[data-forme="felin"] { --c: var(--forme-felin); }
+.silhouette[data-forme="humanoide"] { --c: var(--forme-humain); }
+.silhouette .corps { fill: var(--c); stroke: var(--ink); stroke-width: .9; stroke-opacity: .55; stroke-linejoin: round; }
+.silhouette .loin { fill: color-mix(in srgb, var(--c) 76%, #000); stroke: var(--ink); stroke-width: .9; stroke-opacity: .45; stroke-linejoin: round; }
+.silhouette .trait { fill: none; stroke: var(--ink); stroke-opacity: .35; stroke-width: 1; stroke-linecap: round; }
+.silhouette .oeil { fill: var(--surface); }
+.silhouette .truffe { fill: var(--ink); fill-opacity: .8; }
+.nom-jeton { position: absolute; top: 144px; font-size: .72rem; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.familier { position: absolute; top: 118px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: var(--serie-adv) center / cover no-repeat; border: 2px solid var(--serie-adv); box-shadow: 0 0 0 1.5px var(--surface); }
+.flottant { position: absolute; top: 58px; font-family: var(--f-donnee); font-size: .82rem; font-weight: 500; white-space: nowrap; pointer-events: none; display: grid; justify-items: center; line-height: 1.1; }
+.flottant .ligne { display: flex; align-items: center; gap: 4px; }
+.flottant small { font-family: var(--f-texte); font-size: .66rem; font-weight: 500; opacity: .85; }
+.flottant.vers-adv { color: var(--serie-druide); } .flottant.vers-druide { color: var(--serie-adv); }
+.flottant.crit { font-size: 1.02rem; font-weight: 700; }
+.flottant.soin { color: var(--vie); }
+.flottant.rate { color: var(--muted); font-family: var(--f-texte); font-style: italic; }
+.bandeau { display: flex; gap: 12px; align-items: baseline; padding: 6px 12px; background: var(--surface); border-top: 1px solid var(--line); min-height: 34px; }
+.bandeau .num { color: var(--muted); font-size: .8rem; flex: none; }
+.bandeau #cine-legende { color: var(--accent); font-weight: 700; font-size: .9rem; }
+.controles { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.controles .segments { flex: 0 1 220px; }
+.frise { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; align-items: center; }
+.frise .etiq { font-size: .74rem; color: var(--muted); font-weight: 700; }
+.piste { position: relative; height: 14px; background: var(--surface-2); border-radius: 3px; cursor: pointer; touch-action: none; }
+.piste i { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--serie-druide); border-radius: 1px; }
+.piste.adv i { background: var(--serie-adv); }
+.piste i.forme { background: var(--muted); }
+.piste .tete-lecture { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
+.decomptes .bloc { align-content: start; }
+.decompte { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: .88rem; align-content: start; }
+.decompte li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 2px 6px 2px 2px; border-radius: 4px; }
+.decompte li.seul { display: block; padding-left: 6px; }
+.decompte li.avenir .ico { filter: grayscale(1); opacity: .45; }
+.decompte li .n { font-family: var(--f-donnee); font-size: .8rem; color: var(--ink-2); }
+.decompte li.avenir { color: var(--muted); }
+.decompte li.recent { background: var(--accent-soft); }
+@media (max-width: 520px) { .cadre .max { display: none; } .rangee { grid-template-columns: minmax(0, 1fr) 5ch; } .druide-fig { scale: .82; } }
+
+/* Guide */
+.matrice td.cellule { font-family: var(--f-donnee); text-align: right; white-space: nowrap; }
+.matrice td.cellule.conseil { color: var(--accent); font-weight: 500; }
+.matrice td.cellule small { color: var(--muted); }
+.guide-adv { display: grid; gap: 18px; }
+.spec-meta { margin: 0; font-size: .8rem; color: var(--muted); line-height: 1.4; }
+.specs-guide { display: grid; gap: 10px; }
+.specs-liste { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.spec-carte { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.spec-carte.choisie { border-color: var(--accent); }
+.spec-carte h4 { margin: 0; font-family: var(--f-titre); font-size: 1.02rem; }
+.spec-carte p { margin: 0; font-size: .88rem; }
+.spec-carte ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; color: var(--ink-2); font-size: .9rem; }
+.spec-carte .puce { align-self: flex-start; margin-top: auto; }
+.spec-carte ul { margin-bottom: 6px; }
+.selecteur { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); }
+.classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 6px; }
+.classes button { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); cursor: pointer; font-family: var(--f-titre); font-size: 1rem; text-align: left; }
+.classes button img { width: 26px; height: 26px; border-radius: 50%; flex: none; }
+.classes button:hover { border-color: var(--muted); }
+.classes button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.matrice tr.debut-classe td { border-top: 1px solid var(--line); }
+.colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; }
+@media (max-width: 720px) { .colonnes { grid-template-columns: minmax(0, 1fr); } }
+.colonnes section { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.colonnes ol, .colonnes ul { margin: 0; padding-left: 1.3em; display: grid; gap: 4px; color: var(--ink-2); }
+.colonnes ol li::marker { font-family: var(--f-donnee); color: var(--accent); font-size: .85em; }
+.titre-forme { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Talents */
+.talents-barre { margin-bottom: 18px; }
+.talents-haut { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; justify-content: space-between; }
+.compteur { font-family: var(--f-donnee); font-size: 1.4rem; }
+.compteur.trop { color: var(--mauvais); }
+.arbres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 900px) { .arbres { grid-template-columns: minmax(0, 1fr); } }
+.arbre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; align-content: start; }
+.arbre header { display: flex; justify-content: space-between; align-items: baseline; }
+.arbre header .num { color: var(--accent); font-size: 1.1rem; }
+.cases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.talent { position: relative; border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--r); padding: 6px 5px 18px; font-size: .74rem; line-height: 1.2; cursor: pointer; text-align: center; min-height: 58px; color: var(--muted); hyphens: auto; overflow-wrap: anywhere; }
+.talent.dispo { color: var(--ink-2); background: var(--surface); }
+.talent.pris { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); }
+.talent.max { box-shadow: inset 0 0 0 1px var(--accent); }
+.talent .rg { position: absolute; bottom: 3px; right: 5px; font-family: var(--f-donnee); font-size: .7rem; }
+.talent .sim { position: absolute; bottom: 5px; left: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.talent[aria-current="true"] { outline: 2px solid var(--ink-2); outline-offset: 1px; }
+.fiche { display: grid; gap: 8px; }
+.fiche .ctrl { display: flex; gap: 8px; align-items: center; }
+.erreurs { color: var(--mauvais); font-size: .9rem; display: grid; gap: 2px; }
+
+/* Mécaniques */
+.meca { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .meca { grid-template-columns: minmax(0, 1fr); } }
+.meca .large { grid-column: 1 / -1; }
+.fiab { white-space: nowrap; font-size: .8rem; font-weight: 700; }
+.fiab.sur { color: var(--bon); } .fiab.divergent { color: var(--moyen); } .fiab.suppose { color: var(--mauvais); }
+.talent .neuf { position: absolute; top: 2px; right: 4px; font-family: var(--f-donnee); font-size: .62rem; color: var(--accent); }
+.meca section { gap: 10px; align-content: start; }
+.meca h2 { font-size: 1.3rem; }
+.meca .sources { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 6px 22px; }
+.meca .sources li { padding-left: 14px; position: relative; }
+.meca .sources li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.meca ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; color: var(--ink-2); }
+.formule { font-family: var(--f-donnee); font-size: .84rem; line-height: 1.45; background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 0 var(--r) var(--r) 0; padding: 8px 12px; overflow-wrap: anywhere; }
+.etapes { counter-reset: e; display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.etapes li { counter-increment: e; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; color: var(--ink-2); }
+.etapes li::before { content: counter(e); font-family: var(--f-donnee); color: var(--accent); font-weight: 500; text-align: right; }
+
+/* Armurerie */
+.armurerie { display: grid; gap: 22px; }
+.perso { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 18px; align-items: center; }
+.perso .portrait { width: 84px; height: 84px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface-2); }
+.perso .ident { display: grid; gap: 4px; min-width: 0; }
+.perso h2 { font-size: 1.7rem; }
+.perso .meta { color: var(--ink-2); }
+.perso .specs-perso { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .9rem; }
+.perso .specs-perso span { display: inline-flex; align-items: center; gap: 6px; }
+.perso .specs-perso b { font-family: var(--f-donnee); font-weight: 500; }
+.perso .bas { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.perso .dates { font-size: .82rem; color: var(--muted); }
+.perso .dates a { color: inherit; }
+.ico-pt { width: 20px; height: 20px; border-radius: 3px; flex: none; }
+.resume-perso { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.resume-perso div { display: grid; }
+.resume-perso b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.matrice td.voir { text-align: right; padding-right: 0; }
+.matrice td.voir .puce { white-space: nowrap; }
+@media (max-width: 520px) { .matrice td.voir .long { display: none; } .matrice th, .matrice td, .controle th, .controle td { padding-right: 6px; } }
+.perso-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .perso-cols { grid-template-columns: minmax(0, 1fr); } }
+.talents-perso { display: grid; gap: 14px; }
+.talents-perso h4 { margin: 0 0 4px; font-family: var(--f-titre); font-size: 1rem; display: flex; justify-content: space-between; }
+.talents-perso h4 .num { color: var(--accent); }
+.talents-perso ul, .objets { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.talents-perso li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: .92rem; }
+.talents-perso li img { width: 24px; height: 24px; border-radius: 3px; }
+.talents-perso li .rg { font-family: var(--f-donnee); font-size: .82rem; color: var(--ink-2); }
+.talents-perso li small { display: block; color: var(--muted); font-size: .78rem; line-height: 1.3; }
+.talents-perso li.hors-sim > span:nth-child(2) { color: var(--muted); }
+.objet { --q: var(--q-commun); display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: start; }
+.objet[data-q="UNCOMMON"] { --q: var(--q-inhabituel); } .objet[data-q="RARE"] { --q: var(--q-rare); }
+.objet[data-q="EPIC"] { --q: var(--q-epique); } .objet[data-q="LEGENDARY"] { --q: var(--q-legendaire); }
+.objet img { width: 36px; height: 36px; border-radius: 4px; border: 2px solid var(--q); background: var(--surface-2); }
+.objet .nom { color: var(--q); font-weight: 700; line-height: 1.25; }
+.objet .ligne { font-size: .8rem; color: var(--muted); }
+.objet .bonus { font-size: .86rem; color: var(--ink-2); }
+.objet .ench { font-size: .84rem; color: var(--bon); }
+.controle td:first-child { color: var(--ink-2); }
+.controle td.ok { color: var(--bon); }
+.perso-charge { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 6px 10px; align-items: center; border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--r); padding: 8px 10px; font-size: .9rem; }
+.perso-charge img { width: 32px; height: 32px; border-radius: 4px; }
+.perso-charge b { font-family: var(--f-titre); font-size: 1rem; }
+.perso-charge .puce { justify-self: start; }
+
+/* Conseils pour gagner */
+.conseil-choix { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+.conseil-choix .champ { flex: 1 1 260px; max-width: 420px; }
+.progression { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.progression i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.conseil-res { display: grid; gap: 16px; min-width: 0; }
+.conseil-res:empty { display: none; }
+.bilan { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px; }
+.bilan > div { display: grid; gap: 2px; align-content: start; padding: 10px 12px; border-radius: var(--r); background: var(--surface-2); }
+.bilan b { font-family: var(--f-donnee); font-size: 1.35rem; font-weight: 500; line-height: 1.2; }
+.bilan small { color: var(--ink-2); font-size: .84rem; line-height: 1.35; }
+.bilan .fleche { color: var(--accent); }
+.cartes3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 1040px) { .cartes3 { grid-template-columns: minmax(0, 1fr); } }
+.carte { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.carte > header { display: flex; align-items: center; gap: 10px; }
+.carte > header img { width: 28px; height: 28px; border-radius: 4px; flex: none; }
+.carte > header h3 { flex: 1; }
+.carte h4 { margin: 4px 0 0; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.carte p { font-size: .92rem; color: var(--ink-2); }
+.carte ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; font-size: .92rem; }
+.ecarts li { display: grid; grid-template-columns: 1.2em minmax(0, 1fr) auto; gap: 6px; align-items: baseline; }
+.ecarts .sg { font-family: var(--f-donnee); font-weight: 500; text-align: center; }
+.ecarts .plus .sg { color: var(--bon); } .ecarts .moins .sg { color: var(--mauvais); }
+.ecarts .rg { font-family: var(--f-donnee); font-size: .82rem; color: var(--ink-2); }
+.poids li { display: grid; grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr) 4.2em; gap: 8px; align-items: center; }
+.poids .jauge-p { position: relative; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.poids .jauge-p i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+.poids .jauge-p i.bruit { background: var(--muted); opacity: .5; }
+.poids .v { font-family: var(--f-donnee); font-size: .84rem; text-align: right; }
+.poids li.bruit > span:first-child, .poids li.bruit .v { color: var(--muted); }
+.faibles li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: start; }
+.faibles img { width: 28px; height: 28px; border-radius: 4px; }
+.faibles small { display: block; color: var(--muted); font-size: .8rem; line-height: 1.3; }
+.heritage li { display: grid; gap: 1px; padding-left: 10px; border-left: 3px solid var(--line); }
+.heritage li.utile { border-left-color: var(--accent); }
+.heritage li.neutre { opacity: .75; }
+.heritage li b { font-weight: 700; }
+.heritage li small { color: var(--ink-2); font-size: .84rem; line-height: 1.35; }
+.liens { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .84rem; }
+.mini { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.mini th, .mini td { padding: 3px 6px 3px 0; text-align: left; border-bottom: 1px solid var(--line); }
+.mini th { font-weight: 500; color: var(--muted); font-size: .78rem; }
+.mini td.n, .mini th.n { text-align: right; font-family: var(--f-donnee); }
+.mini tr.retenu td { color: var(--accent); font-weight: 500; }
+.perso-charge .boutons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.attente { color: var(--muted); font-style: italic; }
+.pied { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; max-width: 80ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="entete">
+    <div>
+      <a class="retour-armurerie" href="/">← Armurerie Forever</a>
+      <h1>Druid<span>how</span></h1>
+      <p class="sous">Simulateur de duel pour druide farouche niveau 60, ou au niveau de vos druides de l'armurerie, World of Warcraft: Forever (build 1.60.1). Choisissez un adversaire : le simulateur joue 100 ou 200 duels par forme, puis rejoue en cinématique le duel qui revient le plus souvent.</p>
+    </div>
+    <div class="profil" id="profil" aria-label="Profil du druide"></div>
+  </header>
+
+  <nav class="onglets" role="tablist" aria-label="Sections">
+    <button role="tab" id="t-simulateur" aria-controls="v-simulateur" aria-selected="true"><img src="icones/ability_meleedamage.jpg" alt="" width="34" height="34"><span class="titre">Simulateur</span><span class="indice" id="i-simulateur">100 ou 200 duels par forme</span></button>
+    <button role="tab" id="t-armurerie" aria-controls="v-armurerie" aria-selected="false"><img src="icones/spell_nature_enchantarmor.jpg" alt="" width="34" height="34"><span class="titre">Armurerie</span><span class="indice" id="i-armurerie">Vos druides et comment gagner</span></button>
+    <button role="tab" id="t-guide" aria-controls="v-guide" aria-selected="false"><img src="icones/classicon_druid.jpg" alt="" width="34" height="34"><span class="titre">Guide</span><span class="indice" id="i-guide">Ours ou félin, par adversaire</span></button>
+    <button role="tab" id="t-talents" aria-controls="v-talents" aria-selected="false"><img src="icones/spell_nature_resistnature.jpg" alt="" width="34" height="34"><span class="titre">Talents</span><span class="indice" id="i-talents">51 points</span></button>
+    <button role="tab" id="t-mecaniques" aria-controls="v-mecaniques" aria-selected="false"><img src="icones/inv_stone_04.jpg" alt="" width="34" height="34"><span class="titre">Mécaniques</span><span class="indice" id="i-mecaniques">Règles, hypothèses, sources</span></button>
+  </nav>
+
+  <!-- ===================================================== Simulateur -->
+  <main id="v-simulateur" role="tabpanel" aria-labelledby="t-simulateur">
+    <div class="simu">
+      <form class="reglages" id="reglages" autocomplete="off">
+        <div class="perso-charge" id="perso-charge" hidden></div>
+        <div class="bloc">
+          <span class="etiquette">Adversaire</span>
+          <div class="adversaires" id="choix-adv"></div>
+        </div>
+        <div class="bloc">
+          <span class="etiquette">Spécialisation (méta WoW Forever)</span>
+          <div class="segments" id="choix-spec"></div>
+          <p class="spec-meta" id="spec-meta"></p>
+        </div>
+        <div class="bloc">
+          <span class="etiquette">Forme principale</span>
+          <div class="segments" id="choix-forme">
+            <button type="button" data-v="auto" aria-pressed="true">Conseillée</button>
+            <button type="button" data-v="ours" aria-pressed="false">Ours</button>
+            <button type="button" data-v="felin" aria-pressed="false">Félin</button>
+          </div>
+        </div>
+        <div class="bloc">
+          <span class="etiquette">Duels par forme</span>
+          <div class="segments" id="choix-nombre">
+            <button type="button" data-v="100" aria-pressed="false">100</button>
+            <button type="button" data-v="200" aria-pressed="true">200</button>
+          </div>
+        </div>
+        <details class="plus" id="avances">
+          <summary>Réglages avancés</summary>
+          <div class="reglages">
+            <div class="grille2">
+              <div class="champ">
+                <label for="ouverture">Ouverture</label>
+                <select id="ouverture">
+                  <option value="auto">Selon la forme</option>
+                  <option value="rodeurTraquer">Rôder puis Traquer</option>
+                  <option value="rodeurRavager">Rôder puis Ravager</option>
+                  <option value="chargeFarouche">Charge farouche</option>
+                  <option value="direct">Attaque directe</option>
+                </select>
+              </div>
+              <div class="champ">
+                <label for="methodeSoin">Se soigner par</label>
+                <select id="methodeSoin">
+                  <option value="auto">Le plus sûr possible</option>
+                  <option value="rapidite">Rapidité de la nature</option>
+                  <option value="sonner">Sonner puis soigner</option>
+                  <option value="sarments">Sarments puis distance</option>
+                  <option value="regen">Régénération frénétique</option>
+                  <option value="aucun">Jamais</option>
+                </select>
+              </div>
+            </div>
+            <div class="champ">
+              <label for="seuilSoin">Se soigner sous <span class="num" id="seuilSoin-val">40 %</span> de PV</label>
+              <input type="range" id="seuilSoin" min="15" max="70" step="5" value="40">
+            </div>
+            <div class="grille2">
+              <div class="champ">
+                <label for="talents-preset">Talents</label>
+                <select id="talents-preset"></select>
+              </div>
+              <div class="champ">
+                <label for="equipement">Équipement</label>
+                <select id="equipement"></select>
+              </div>
+              <div class="champ">
+                <label for="equipAdv">Équipement adverse</label>
+                <select id="equipAdv">
+                  <option value="bleu">Bleu pré-raid</option>
+                  <option value="epique">Épique (+15 %)</option>
+                </select>
+              </div>
+              <div class="champ">
+                <label for="distance">Distance de départ</label>
+                <select id="distance">
+                  <option value="15">15 m</option>
+                  <option value="25" selected>25 m</option>
+                  <option value="35">35 m</option>
+                </select>
+              </div>
+            </div>
+            <label class="case"><input type="checkbox" id="powershift" checked> Puissance changeante (si le talent est pris)</label>
+            <details class="plus">
+              <summary>Statistiques de l'équipement</summary>
+              <div class="stats" id="stats"></div>
+            </details>
+          </div>
+        </details>
+        <div class="actions">
+          <button type="submit" class="btn" id="lancer">Tirer d'autres duels</button>
+        </div>
+      </form>
+
+      <div class="resultats">
+        <section class="panneau" aria-live="polite">
+          <div class="verdict" id="verdict"><p class="attente">Calcul en cours…</p></div>
+          <div class="formes" id="formes"></div>
+          <div class="legende-barre">
+            <span><i style="background:var(--bon)"></i>Victoire</span>
+            <span><i style="background:var(--line)"></i>Nul (180 s)</span>
+            <span><i style="background:var(--mauvais);opacity:.8"></i>Défaite</span>
+          </div>
+        </section>
+
+        <section class="panneau" id="cine">
+          <div class="titre-forme">
+            <h3>Cinématique du duel le plus fréquent</h3>
+            <span class="discret" id="cine-forme"></span>
+          </div>
+          <p class="prose" id="cine-intro">Calcul en cours…</p>
+          <div class="scenarios" id="scenarios" role="group" aria-label="Issues des duels simulés"></div>
+          <div class="scene" id="scene">
+            <div class="cadres">
+              <div class="cadre" id="cadre-d"></div>
+              <div class="cadre" id="cadre-a"></div>
+            </div>
+            <div class="arene" id="arene" role="img" aria-label="Les deux combattants vus de côté"><div class="monde" id="monde"></div></div>
+            <div class="bandeau"><span class="num" id="cine-t">0,0 s</span><span id="cine-legende"></span></div>
+          </div>
+          <div class="controles">
+            <button type="button" class="btn principal" id="cine-lecture">▶ Lecture</button>
+            <button type="button" class="btn" id="cine-debut">↺ Début</button>
+            <div class="segments" id="cine-vitesse" role="group" aria-label="Vitesse de lecture">
+              <button type="button" data-v="1" aria-pressed="false">×1</button>
+              <button type="button" data-v="2" aria-pressed="true">×2</button>
+              <button type="button" data-v="4" aria-pressed="false">×4</button>
+              <button type="button" data-v="8" aria-pressed="false">×8</button>
+            </div>
+          </div>
+          <div class="frise">
+            <span class="etiq">Druide</span><div class="piste" id="piste-d"></div>
+            <span class="etiq" id="frise-adv">Adversaire</span><div class="piste adv" id="piste-a"></div>
+            <span></span><input type="range" id="cine-temps" min="0" max="10" step="0.1" value="0" aria-label="Moment du duel">
+          </div>
+          <div class="deux decomptes">
+            <div class="bloc">
+              <span class="etiquette">Sorts et techniques du druide</span>
+              <ol class="decompte" id="decompte-d"></ol>
+            </div>
+            <div class="bloc">
+              <span class="etiquette" id="decompte-titre-a">Sorts et techniques de l'adversaire</span>
+              <ol class="decompte" id="decompte-a"></ol>
+            </div>
+          </div>
+        </section>
+
+        <section class="panneau">
+          <div class="titre-forme">
+            <h3>Moyennes par duel</h3>
+            <span class="discret" id="moyennes-forme"></span>
+          </div>
+          <div class="chiffres" id="chiffres"></div>
+          <div class="deux">
+            <div class="bloc">
+              <span class="etiquette">Vos dégâts par technique</span>
+              <div class="repartition" id="par-sort"></div>
+            </div>
+            <div class="bloc">
+              <span class="etiquette">Dégâts reçus par source</span>
+              <div class="repartition" id="par-source"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================== Armurerie -->
+  <section id="v-armurerie" role="tabpanel" aria-labelledby="t-armurerie" hidden>
+    <div class="armurerie">
+      <div class="chips" id="perso-chips"></div>
+      <article class="panneau perso" id="perso-carte"></article>
+      <div class="panneau" id="perso-comparatif">
+        <div class="titre-forme">
+          <h2 id="perso-comp-titre">Ours ou félin à votre niveau ?</h2>
+          <span class="discret" id="perso-matrice-etat"></span>
+        </div>
+        <p class="prose" id="perso-comp-intro"></p>
+        <div class="resume-perso" id="perso-resume"></div>
+        <div class="tableau"><table class="matrice" id="perso-matrice"></table></div>
+      </div>
+      <section class="panneau conseil" id="perso-conseil">
+        <div class="titre-forme">
+          <h2 id="conseil-titre">Comment gagner ce duel ?</h2>
+          <span class="discret" id="conseil-etat"></span>
+        </div>
+        <p class="prose" id="conseil-intro"></p>
+        <div class="conseil-choix">
+          <div class="champ">
+            <label for="conseil-adv">Adversaire</label>
+            <select id="conseil-adv"></select>
+          </div>
+          <button type="button" class="btn principal" id="conseil-go">Chercher des améliorations</button>
+        </div>
+        <div class="progression" id="conseil-prog" hidden><i></i></div>
+        <div class="conseil-res" id="conseil-res"></div>
+      </section>
+      <div class="perso-cols" id="perso-details">
+        <section class="panneau">
+          <h3>Talents de l'armurerie</h3>
+          <div class="talents-perso" id="perso-talents"></div>
+        </section>
+        <section class="panneau">
+          <h3>Équipement</h3>
+          <ul class="objets" id="perso-equipement"></ul>
+        </section>
+      </div>
+      <section class="panneau" id="perso-conversion">
+        <h3>De la fiche au simulateur</h3>
+        <p class="prose">L'armurerie donne les totaux du personnage ; le simulateur a besoin de la part qui vient de l'équipement. Les valeurs hors forme doivent retomber exactement sur la fiche ; celles en forme sont calculées par le simulateur.</p>
+        <div class="tableau"><table class="controle" id="perso-controle"></table></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===================================================== Guide -->
+  <section id="v-guide" role="tabpanel" aria-labelledby="t-guide" hidden>
+    <div class="guide-adv">
+      <div class="panneau">
+        <div class="titre-forme">
+          <h2>Ours ou félin ?</h2>
+          <span class="discret" id="matrice-etat"></span>
+        </div>
+        <p class="prose">Taux de victoire simulés avec vos talents et votre équipement actuels (100 duels par case), pour chaque spécialisation jouée en duel dans WoW Forever. La forme en orange est la meilleure des deux.</p>
+        <div class="tableau"><table class="matrice" id="matrice"></table></div>
+      </div>
+      <div class="selecteur" role="group" aria-label="Adversaire du guide">
+        <span class="etiquette">Adversaire</span>
+        <div class="classes" id="guide-chips"></div>
+      </div>
+      <article class="panneau" id="guide-detail"></article>
+      <div class="panneau">
+        <h3>Les deux formes côte à côte</h3>
+        <div class="tableau"><table id="comparaison"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== Talents -->
+  <section id="v-talents" role="tabpanel" aria-labelledby="t-talents" hidden>
+    <div class="panneau talents-barre">
+    <div class="talents-haut">
+      <div class="champ" style="min-width:240px">
+        <label for="talents-preset-2">Partir d'un préréglage</label>
+        <select id="talents-preset-2"></select>
+      </div>
+      <div>
+        <span class="etiquette">Points dépensés</span>
+        <div class="compteur" id="compteur">0 / 51</div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" id="talents-vider">Tout retirer</button>
+      </div>
+    </div>
+    <p class="prose">Cliquez sur un talent pour ajouter un point, clic droit pour en retirer. Sur téléphone, touchez le talent puis utilisez + et − dans la fiche. Un point orange signale un talent pris en compte par le simulateur ; la mention N marque un talent nouveau dans Forever, M un talent modifié. Le simulateur utilise toujours ces talents.</p>
+    </div>
+    <div class="erreurs" id="talents-erreurs"></div>
+    <div class="arbres" id="arbres"></div>
+    <div class="panneau fiche" id="fiche" style="margin-top:18px"></div>
+  </section>
+
+  <!-- ===================================================== Mécaniques -->
+  <section id="v-mecaniques" role="tabpanel" aria-labelledby="t-mecaniques" hidden>
+    <div class="meca">
+      <section class="panneau">
+        <h2>Sortir du combat pour se soigner</h2>
+        <p class="prose">En forme animale, vous ne pouvez pas lancer de soin. Il faut quitter la forme (le mana dépensé pour y revenir compte), puis incanter sans être interrompu. Le simulateur essaie ces plans dans cet ordre quand vos PV passent sous le seuil :</p>
+        <ol class="etapes">
+          <li><span><b>Rapidité de la nature</b> : quitter la forme, Toucher guérisseur instantané, reprendre la forme. Le plus sûr, recharge 3 min.</span></li>
+          <li><span><b>Sonner puis soigner</b> : au contact, passer en ours, Sonner (4 à 5 s d'étourdissement), quitter la forme et incanter Toucher guérisseur (3 s).</span></li>
+          <li><span><b>Sarments puis distance</b> : contre un corps à corps, enraciner (27 s ; dans Forever, les racines cèdent après environ 600 dégâts, +25 % par rang de Sarments améliorés), reculer à 14 m, puis soigner.</span></li>
+          <li><span><b>Régénération frénétique</b> : rester en ours et convertir la rage en PV pendant 10 s.</span></li>
+          <li><span><b>Fenêtres gratuites</b> : Bloc de glace du mage, Bouclier divin du paladin (ses dégâts −50 % pendant 10 s), adversaire contrôlé ou loin.</span></li>
+        </ol>
+      </section>
+      <section class="panneau">
+        <h2>Régénération</h2>
+        <ul>
+          <li><b>Mana</b> : règle des 5 secondes. Pas de régénération par l'Esprit pendant 5 s après un sort qui coûte du mana (sauf Réflexion, qui en garde une part). Le simulateur l'applique aussi aux adversaires.</li>
+          <li><b>Énergie</b> : 20 toutes les 2 s. Dans Forever, la transformation rapide ne rend plus d'énergie. Fureur garde 20 % par rang de l'énergie que vous aviez en quittant le félin, et ajoute l'énergie que vous auriez régénérée hors de la forme (20 au plus par rang).</li>
+          <li><b>Puissance changeante</b> (talent farouche) : +40 énergie sans quitter la forme, recharge 8 s, 55 % du mana de base.</li>
+          <li><b>Rage</b> : générée en frappant et en recevant des coups ; Fureur 5/5 donne 10 rage en entrant en ours, Enrager donne 10 rage tout de suite, Réaction naturelle 5 rage à chaque esquive.</li>
+          <li><b>Innervation</b> : régénération ×5 pendant 20 s, même en incantant.</li>
+        </ul>
+        <div class="formule">rage gagnée en frappant = 7,5 × dégâts / 230,6</div>
+        <div class="formule">coût de forme = 55 % du mana de base (1 244) × (1 − 10 % par rang de Changeforme naturel)</div>
+      </section>
+      <section class="panneau">
+        <h2>Armure et dégâts</h2>
+        <ul>
+          <li>La réduction est plafonnée à 75 %. Saignements et sorts l'ignorent.</li>
+          <li>La forme d'ours multiplie l'armure des objets par 4,6 : c'est elle qui rend l'ours si solide contre les corps à corps.</li>
+          <li>Lambeau et Ravager demandent d'être dans le dos. Le simulateur suppose que c'est possible depuis Rôder, après une Charge farouche en félin (3 s), quand l'adversaire est contrôlé, et une fois sur deux pendant qu'il incante.</li>
+        </ul>
+        <div class="formule">réduction = armure / (armure + 400 + 85 × 60)</div>
+      </section>
+      <section class="panneau">
+        <h2>Contrôles et rendements décroissants</h2>
+        <ul>
+          <li>Un même type de contrôle dure 100 %, puis 50 %, puis 25 %, puis plus rien. Le compteur repart à zéro 15 s après la fin du dernier.</li>
+          <li>En forme animale, vous êtes insensible à la Métamorphose.</li>
+          <li>Changer de forme brise les racines et les ralentissements, pas la Peur ni les étourdissements.</li>
+          <li>Sonner et Charge farouche interrompent une incantation en cours.</li>
+        </ul>
+      </section>
+      <section class="panneau">
+        <h2>Ce que le simulateur suppose</h2>
+        <ul>
+          <li>Duel 1 contre 1 sur une ligne droite, sans obstacle ni ligne de vue. Contre le chasseur, cela l'avantage.</li>
+          <li>Pas de bijou, de potion, d'ingénierie ni de bandage.</li>
+          <li>Les adversaires suivent une intelligence simple mais réaliste pour leur classe.</li>
+          <li>Sous le niveau 60 (personnage de l'armurerie), le duel est estimé. L'adversaire, du même niveau, n'a que les sorts déjà appris et aucun talent à 31 points. Ses PV, son armure, ses dégâts et ses soins, comme les valeurs fixes des sorts du druide, suivent une loi en (niveau / 60)<sup>x</sup> calée sur le niveau 60. Sous le niveau 40, la Forme d'ours remplace la Forme d'ours redoutable.</li>
+          <li>Les valeurs viennent des notes de WoW Forever quand elles existent, sinon de Classic 1.12. Elles sont arrondies et servent à comparer des choix entre eux. Le tableau ci-dessous dit d'où vient chaque changement.</li>
+        </ul>
+      </section>
+      <section class="panneau">
+        <h2>Lire un résultat</h2>
+        <ul>
+          <li>Un duel est nul s'il dure plus de 180 s. Contre un paladin en ours, c'est fréquent : aucun des deux ne tue l'autre.</li>
+          <li>Changez une seule chose à la fois (forme, méthode de soin, seuil) et relancez pour voir son effet.</li>
+          <li>200 duels par forme donnent un taux précis à ±7 points environ, 100 duels à ±10 points. « Tirer d'autres duels » vérifie qu'un écart tient.</li>
+        </ul>
+      </section>
+      <section class="panneau large">
+        <h2>Ce qui change dans WoW Forever</h2>
+        <p class="prose">Valeurs utilisées par le simulateur. <b>Sûr</b> : les sources concordent. <b>Divergent</b> : elles se contredisent, le simulateur prend la plus détaillée. <b>Supposé</b> : aucun chiffre publié, estimation.</p>
+        <div class="tableau"><table id="changements"></table></div>
+      </section>
+      <section class="panneau large">
+        <h2>Sources</h2>
+        <ul class="sources" id="sources"></ul>
+      </section>
+    </div>
+  </section>
+
+  <p class="pied">Valeurs approchées de WoW Forever, à modifier dans js/donnees.js. Notes de classes en partie reprises de Classic WoW Forever (CC BY 4.0). Projet de fan, sans lien avec Blizzard Entertainment.</p>
+</div>
+
+<script src="js/donnees.js"></script>
+<script src="js/guide.js"></script>
+<script src="js/moteur.js"></script>
+<script src="js/icones.js"></script>
+<script src="js/conseiller.js"></script>
+<script>
+// Les druides viennent du serveur de l'armurerie (GET /api/druides), convertis à chaque lecture.
+(function () {
+  const aide = 'Ajoutez un druide sur la page de l\'armurerie : il apparaît ici après sa première lecture.';
+  const lancer = donnees => {
+    window.PERSONNAGES = Object.assign({ personnages: [] }, donnees, { aide });
+    const s = document.createElement('script');
+    s.src = 'js/interface.js';
+    document.body.appendChild(s);
+  };
+  fetch('../api/druides', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null)
+    .then(lancer);
+})();
+</script>
+</body>
+</html>

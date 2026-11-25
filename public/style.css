@@ -84,3 +84,8 @@ main { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr
 .instances li img { width: 18px; height: 18px; border-radius: 3px; }
 .instances li b { font-weight: 600; color: var(--muted); }
 .instances li.done b { color: var(--q-uncommon); }
+
+/* Liens vers le simulateur de duel (public/simulateur) */
+.lien-sim { color: var(--gold); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-size: 14px; }
+.lien-sim:hover { border-color: var(--gold); }
+.foot .lien-sim { padding: 2px 8px; font-size: 13px; }

@@ -5,6 +5,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { convertirDruide } = require('./druide.js');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -137,7 +138,14 @@ async function fetchCharacter(c) {
   if (!res.ok) throw new Error(`Armurerie : HTTP ${res.status}`);
   const state = extractState(await res.text());
   if (!state?.character) throw new Error('Format de page inattendu');
-  return simplify(state.character);
+  return state.character;
+}
+
+// Druide converti pour le simulateur ; une erreur de conversion ne bloque pas la fiche.
+function druideDe(c, raw) {
+  if (raw.class?.slug !== 'druid') return null;
+  try { return convertirDruide({ key: keyOf(c), region: c.region, armoryUrl: armoryUrl(c) }, raw); }
+  catch (e) { console.error(`Simulateur : ${keyOf(c)} non converti (${e.message})`); return null; }
 }
 
 const refreshing = new Set();
@@ -148,10 +156,11 @@ async function refreshOne(c) {
   refreshing.add(key);
   const prev = cache[key] || {};
   try {
-    const profile = await fetchCharacter(c);
+    const raw = await fetchCharacter(c);
+    const profile = simplify(raw);
     // Un échec sur les donjons ne bloque pas la fiche : on garde la dernière liste connue.
     profile.instances = await fetchInstances(c).catch(() => prev.profile?.instances || []);
-    cache[key] = { status: 'ok', fetchedAt: new Date().toISOString(), profile };
+    cache[key] = { status: 'ok', fetchedAt: new Date().toISOString(), profile, druide: druideDe(c, raw) };
   } catch (e) {
     cache[key] = {
       ...prev,
@@ -185,13 +194,23 @@ function view() {
       ...c,
       armoryUrl: armoryUrl(c),
       refreshing: refreshing.has(keyOf(c)),
-      ...(cache[keyOf(c)] || { status: 'pending' }),
+      ...sansDruide(cache[keyOf(c)] || { status: 'pending' }),
     })),
   };
 }
+const sansDruide = ({ druide, ...reste }) => reste;
 
-function send(res, code, body, type = 'application/json; charset=utf-8') {
-  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
+// Druides au format du simulateur (public/simulateur/js/interface.js lit window.PERSONNAGES).
+function druides() {
+  return {
+    source: '/',
+    capture: lastFullRefresh,
+    personnages: characters.map((c) => cache[keyOf(c)]?.druide).filter(Boolean),
+  };
+}
+
+function send(res, code, body, type = 'application/json; charset=utf-8', cacheControl = 'no-store') {
+  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': cacheControl });
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
@@ -217,13 +236,17 @@ function parseCharacter(body) {
   return { region, name: cap(name), surname: cap(surname) };
 }
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+const MIME = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png',
+};
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   try {
     if (p === '/api/characters' && req.method === 'GET') return send(res, 200, view());
+    if (p === '/api/druides' && req.method === 'GET') return send(res, 200, druides());
 
     if (p === '/api/characters' && req.method === 'POST') {
       const c = parseCharacter(await readBody(req));
@@ -256,11 +279,15 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && !p.startsWith('/api/')) {
-      const file = path.join(PUBLIC_DIR, p === '/' ? 'index.html' : path.normalize(p));
+      if (p === '/simulateur') { res.writeHead(301, { Location: '/simulateur/' + url.search }); return res.end(); }
+      const file = path.join(PUBLIC_DIR, p.endsWith('/') ? path.normalize(p) + 'index.html' : path.normalize(p));
       if (!file.startsWith(PUBLIC_DIR)) return send(res, 403, 'Interdit', 'text/plain');
+      const ext = path.extname(file);
+      // Les icônes ne changent pas : le navigateur les garde un jour.
+      const cacheControl = ext === '.jpg' || ext === '.png' ? 'public, max-age=86400' : 'no-store';
       return fs.readFile(file, (err, buf) =>
         err ? send(res, 404, 'Introuvable', 'text/plain')
-            : send(res, 200, buf, MIME[path.extname(file)] || 'application/octet-stream'));
+            : send(res, 200, buf, MIME[ext] || 'application/octet-stream', cacheControl));
     }
     send(res, 404, { error: 'Route inconnue' });
   } catch (e) {
