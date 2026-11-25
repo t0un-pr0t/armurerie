@@ -6,6 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { convertirDruide } = require('./druide.js');
+const { convertirCombattant } = require('./combattant.js');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -147,6 +148,11 @@ function druideDe(c, raw) {
   try { return convertirDruide({ key: keyOf(c), region: c.region, armoryUrl: armoryUrl(c) }, raw); }
   catch (e) { console.error(`Simulateur : ${keyOf(c)} non converti (${e.message})`); return null; }
 }
+// Toutes classes : fiche réduite pour le simulateur générique (public/simulateur/js/arene.js).
+function combattantDe(c, raw) {
+  try { return convertirCombattant({ key: keyOf(c), region: c.region, armoryUrl: armoryUrl(c) }, raw); }
+  catch (e) { console.error(`Simulateur : ${keyOf(c)} non converti (${e.message})`); return null; }
+}
 
 const refreshing = new Set();
 
@@ -160,7 +166,7 @@ async function refreshOne(c) {
     const profile = simplify(raw);
     // Un échec sur les donjons ne bloque pas la fiche : on garde la dernière liste connue.
     profile.instances = await fetchInstances(c).catch(() => prev.profile?.instances || []);
-    cache[key] = { status: 'ok', fetchedAt: new Date().toISOString(), profile, druide: druideDe(c, raw) };
+    cache[key] = { status: 'ok', fetchedAt: new Date().toISOString(), profile, druide: druideDe(c, raw), combattant: combattantDe(c, raw) };
   } catch (e) {
     cache[key] = {
       ...prev,
@@ -198,7 +204,7 @@ function view() {
     })),
   };
 }
-const sansDruide = ({ druide, ...reste }) => reste;
+const sansDruide = ({ druide, combattant, ...reste }) => reste;
 
 // Druides au format du simulateur (public/simulateur/js/interface.js lit window.PERSONNAGES).
 function druides() {
@@ -206,6 +212,14 @@ function druides() {
     source: '/',
     capture: lastFullRefresh,
     personnages: characters.map((c) => cache[keyOf(c)]?.druide).filter(Boolean),
+  };
+}
+
+// Tous les personnages au format du simulateur générique.
+function combattants() {
+  return {
+    capture: lastFullRefresh,
+    personnages: characters.map((c) => cache[keyOf(c)]?.combattant).filter(Boolean),
   };
 }
 
@@ -247,6 +261,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (p === '/api/characters' && req.method === 'GET') return send(res, 200, view());
     if (p === '/api/druides' && req.method === 'GET') return send(res, 200, druides());
+    if (p === '/api/combattants' && req.method === 'GET') return send(res, 200, combattants());
 
     if (p === '/api/characters' && req.method === 'POST') {
       const c = parseCharacter(await readBody(req));

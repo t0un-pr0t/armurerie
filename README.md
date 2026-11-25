@@ -27,20 +27,39 @@ Variables d'environnement facultatives :
 - Un personnage absent de l'armurerie (pas encore indexé, nom mal orthographié) est affiché
   « introuvable » et retenté à chaque passage.
 
-## Simulateur de duel druide
+## Simulateur
 
-`/simulateur/` (dossier `public/simulateur`, repris de druidhow) : duels d'un druide farouche contre les
-spécialisations jouées en duel, en ours et en félin, à son niveau, avec cinématique, guide par adversaire,
-calculateur de talents et conseils pour gagner (talents, statistiques, enchantements, points d'héritage).
-Tout le calcul se fait dans le navigateur, en JavaScript sans compilation.
+`/simulateur/` (dossier `public/simulateur`) : tout personnage de l'armurerie, de n'importe quelle classe,
+se compare aux joueurs de son rang (niveau ± 3). Tout le calcul se fait dans le navigateur, en JavaScript
+sans compilation.
 
-- À chaque lecture d'un druide, le serveur convertit sa fiche Blizzard pour le moteur (`druide.js` :
-  talents reconnus par leur nom, stats ramenées au format du moteur, objets) ;
-  `GET /api/druides` renvoie ces druides, que la page charge au démarrage.
-- Le bouton « Simuler » d'une carte de druide ouvre `/simulateur/?perso=<région>/<slug>#armurerie`.
-- Les valeurs du jeu sont dans `public/simulateur/js/donnees.js`, le moteur dans `moteur.js`.
+- **Classement** : les personnages de l'armurerie du même rang, classés par taux de victoire moyen contre
+  les 17 spécialisations jouées en duel (à leur propre niveau), avec le joueur type de la spécialisation comme repère.
+- **Fiche comparée** : vos stats face au joueur type et votre place parmi les joueurs de votre rang.
+- **Duels** : 30 duels contre chaque spécialisation, 40 contre chaque vrai joueur du rang ;
+  « Voir le duel » rejoue un duel typique (courbe des PV, dégâts par technique, journal).
+- **Conseils** : gain en points de victoire avec un peu plus de PV, PA, dégâts d'arme, puissance des sorts,
+  critique ou armure (mêmes duels avec et sans), adversaires difficiles.
 
-Tests : `npm test` (moteur, icônes, conseiller, conversion sur la fiche figée `tests/fixtures/ohm-let.json`).
+Fonctionnement :
+
+- À chaque lecture, le serveur convertit la fiche Blizzard en combattant (`combattant.js` : classe,
+  spécialisation principale, talents, stats, armes) ; `GET /api/combattants` renvoie la liste.
+- Le moteur toutes classes est `public/simulateur/js/arene.js` (Node et navigateur) : priorités par classe,
+  sorts appris selon le niveau et les talents, contrôles et rendements décroissants, interruptions, familiers.
+  Les joueurs types (`TYPES`, `SPECS_TYPES`) sont calés au niveau 60 puis ramenés au niveau voulu.
+- Le bouton « Simuler » de chaque carte ouvre `/simulateur/?perso=<région>/<slug>`.
+
+### Simulateur détaillé druide farouche
+
+`/simulateur/druide.html` (repris de druidhow) : ours et félin contre chaque spécialisation, cinématique,
+guide par adversaire, calculateur de talents et conseils (talents, statistiques, enchantements, points
+d'héritage). Le serveur convertit chaque druide avec `druide.js` ; `GET /api/druides` les renvoie.
+Valeurs du jeu dans `public/simulateur/js/donnees.js`, moteur dans `moteur.js`. Lien depuis la page
+générique pour les druides.
+
+Tests : `npm test` (arène, conversion des combattants et des druides sur les fiches figées de
+`tests/fixtures/`, moteur druide, icônes, conseiller).
 
 ## Déploiement
 

@@ -69,8 +69,8 @@ function card(c) {
       <b>${d.count ?? 0}/${d.total ?? '?'}</b></li>`;
   }).join('');
   const stale = c.status !== 'ok' ? `<div class="msg err">Dernière lecture en échec : ${esc(c.error)}</div>` : '';
-  const sim = p.classSlug === 'druid'
-    ? `<a class="lien-sim" href="/simulateur/?perso=${encodeURIComponent(c.key)}#armurerie" title="Duels contre chaque spécialisation et conseils">Simuler</a>` : '';
+  const sim = p && p.level
+    ? `<a class="lien-sim" href="/simulateur/?perso=${encodeURIComponent(c.key)}" title="Duels contre chaque spécialisation et contre les joueurs de votre niveau">Simuler</a>` : '';
 
   const horde = p.faction === 'HORDE';
   return `<article class="card cls-${esc(p.classSlug)}">
