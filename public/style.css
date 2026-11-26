@@ -85,7 +85,9 @@ main { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr
 .instances li b { font-weight: 600; color: var(--muted); }
 .instances li.done b { color: var(--q-uncommon); }
 
-/* Liens vers le simulateur de duel (public/simulateur) */
-.lien-sim { color: var(--gold); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-size: 14px; }
-.lien-sim:hover { border-color: var(--gold); }
+/* Liens vers le simulateur de duel et la page BiS (public/simulateur) */
+.liens { display: flex; flex-wrap: wrap; gap: 8px; }
+.lien-sim { display: inline-flex; align-items: center; color: #2a1d05; background: linear-gradient(180deg, #f3cf7d, #d9a43f); text-decoration: none; font-weight: 600; border: 1px solid #f6dc9c; border-radius: 999px; padding: 6px 16px; font-size: 14px; box-shadow: 0 1px 0 #ffffff40 inset, 0 2px 6px #00000055; }
+.lien-sim:hover { background: linear-gradient(180deg, #f8dc97, #e3b04c); border-color: #fff0c4; }
+.lien-sim:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .foot .lien-sim { padding: 2px 8px; font-size: 13px; }
