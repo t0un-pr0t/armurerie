@@ -35,19 +35,35 @@ sans compilation.
 
 - **Classement** : les personnages de l'armurerie du même rang, classés par taux de victoire moyen contre
   les 17 spécialisations jouées en duel (à leur propre niveau), avec le joueur type de la spécialisation comme repère.
-- **Fiche comparée** : vos stats face au joueur type et votre place parmi les joueurs de votre rang.
+- **Fiche comparée** : vos stats avec l'équipement porté, le meilleur hors donjon et la suite épique de donjon,
+  face au joueur type, avec votre place parmi les joueurs de votre rang et les victoires de chaque version.
+- **Équipement** : chaque objet porté comparé aux deux paliers de votre niveau, les trois emplacements les plus
+  en retard mis en avant (voir plus bas).
 - **Duels** : 30 duels contre chaque spécialisation, 40 contre chaque vrai joueur du rang ;
   « Voir le duel » rejoue un duel typique (courbe des PV, dégâts par technique, journal).
 - **Conseils** : gain en points de victoire avec un peu plus de PV, PA, dégâts d'arme, puissance des sorts,
-  critique ou armure (mêmes duels avec et sans), adversaires difficiles.
+  critique ou armure (mêmes duels avec et sans), adversaires difficiles, gain d'un rééquipement.
 
 Fonctionnement :
 
 - À chaque lecture, le serveur convertit la fiche Blizzard en combattant (`combattant.js` : classe,
-  spécialisation principale, talents, stats, armes) ; `GET /api/combattants` renvoie la liste.
+  spécialisation principale, talents, stats, armes, objets portés) ; `GET /api/combattants` renvoie la liste.
+  Les fiches lues avant l'ajout des objets n'en ont pas jusqu'à leur prochaine lecture : la section
+  Équipement l'indique.
 - Le moteur toutes classes est `public/simulateur/js/arene.js` (Node et navigateur) : priorités par classe,
   sorts appris selon le niveau et les talents, contrôles et rendements décroissants, interruptions, familiers.
   Les joueurs types (`TYPES`, `SPECS_TYPES`) sont calés au niveau 60 puis ramenés au niveau voulu.
+- Paliers d'équipement (`public/simulateur/js/equipement.js`) :
+  - **porté** : la fiche telle quelle ;
+  - **meilleur hors donjon** : objets rares (bleus) de niveau d'objet égal au niveau du personnage ;
+  - **donjon épique** : suite épique de niveau d'objet égal au niveau + 5.
+
+  La fiche ne donne pas le niveau d'objet : il est estimé par le budget de stats de l'objet (norme 1,5,
+  selon la qualité et l'emplacement, comme dans WoW classique) et, pour une arme, par son DPS. Le personnage
+  rééquipé garde race, talents, enchantements, bijoux et reliques ; il reçoit la différence entre les stats
+  du palier (budget réparti selon la classe et la spécialisation) et celles des objets portés, une armure
+  et un DPS d'arme au niveau du palier. Il joue les mêmes duels, avec les mêmes graines, contre les 17
+  spécialisations, et apparaît comme repère dans le classement.
 - Le bouton « Simuler » de chaque carte ouvre `/simulateur/?perso=<région>/<slug>`.
 
 ### Simulateur détaillé druide farouche
@@ -59,7 +75,7 @@ Valeurs du jeu dans `public/simulateur/js/donnees.js`, moteur dans `moteur.js`. 
 générique pour les druides.
 
 Tests : `npm test` (arène, conversion des combattants et des druides sur les fiches figées de
-`tests/fixtures/`, moteur druide, icônes, conseiller).
+`tests/fixtures/`, paliers d'équipement, moteur druide, icônes, conseiller).
 
 ## Déploiement
 

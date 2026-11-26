@@ -33,6 +33,24 @@ function lireStats(st = {}) {
 }
 
 const r1 = (x) => Math.round(x * 10) / 10;
+// Objets portés : ce qu'il faut pour estimer leur valeur (public/simulateur/js/equipement.js)
+function equipement(gear) {
+  return Object.entries(gear || {}).map(([emplacement, o]) => {
+    const stats = {};
+    for (const s of o.stats || []) {
+      const k = s.type?.type;
+      if (k && typeof s.value === 'number') stats[k.replace(/,$/, '')] = (stats[k.replace(/,$/, '')] || 0) + s.value;
+    }
+    const w = o.weapon;
+    return {
+      emplacement, emplacementNom: o.slot?.name || emplacement, type: o.inventory_type?.type || null,
+      nom: o.name, qualite: o.quality?.type || null, niveauRequis: o.requirements?.level?.value || null,
+      sousType: o.item_subclass?.name || null, armure: o.armor?.value || 0, stats,
+      arme: w ? { min: w.damage.min_value, max: w.damage.max_value, vitesse: w.attack_speed.value / 1000, dps: r1(w.dps.value) } : null,
+      icone: o.media?.content?.assets?.find((a) => a.key === 'icon')?.value || null,
+    };
+  });
+}
 const arme = (o) => {
   const w = o?.weapon;
   return w ? { min: w.damage.min_value, max: w.damage.max_value, vitesse: w.attack_speed.value / 1000, dps: r1(w.dps.value), nom: o.name } : null;
@@ -77,7 +95,8 @@ function convertirCombattant(entree, c) {
       arme: { min: Math.round(f.degatsMin), max: Math.round(f.degatsMax), vitesse: Math.round(vitesse * 100) / 100 },
       distance,
     },
+    equipement: equipement(c.gear),
   };
 }
 
-module.exports = { convertirCombattant, lireStats, CLASSES, ARBRES, sansAccent };
+module.exports = { convertirCombattant, equipement, lireStats, CLASSES, ARBRES, sansAccent };

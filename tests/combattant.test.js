@@ -29,3 +29,12 @@ test('pourcentages arrondis au dixième', () => {
   for (const p of [ohm, goliathe]) for (const k of ['critique', 'esquive', 'parade', 'blocage'])
     assert.strictEqual(p.stats[k], Math.round(p.stats[k] * 10) / 10, `${p.nom} ${k}`);
 });
+
+test('équipement porté : emplacement, qualité, stats et arme de chaque objet', () => {
+  const torse = goliathe.equipement.find((o) => o.emplacement === 'chest');
+  assert.ok(torse && torse.nom && torse.qualite);
+  assert.ok(Object.keys(torse.stats).length > 0);
+  for (const o of goliathe.equipement) for (const k of Object.keys(o.stats)) assert.ok(!k.endsWith(','), k);
+  const arme = goliathe.equipement.find((o) => o.emplacement === 'weapon');
+  assert.ok(arme.arme && arme.arme.dps > 0 && arme.arme.vitesse > 1);
+});

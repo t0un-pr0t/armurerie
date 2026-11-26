@@ -7,6 +7,7 @@
 (function () {
   'use strict';
   const A = window.Arene;
+  const E = window.Equipement;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nf = new Intl.NumberFormat('fr-FR');
@@ -111,14 +112,21 @@
     const types = A.adversairesTypes(p.niveau);
     const ref = typeDe(p);
     const variantes = variantesDe(p);
-    res = { pairs, autres, types, ref, variantes, vsTypes: {}, vsJoueurs: {}, scores: {}, scoreRef: null, conseils: null };
+    // Le même personnage rééquipé : meilleur hors donjon et suite épique de donjon
+    const equip = E ? E.analyser(p) : null;
+    const paliers = equip ? E.PALIERS.filter((x) => x.qualite).map((x) => ({ ...x, profil: E.profilPalier(p, x.id) })) : [];
+    res = {
+      pairs, autres, types, ref, variantes, equip, paliers,
+      vsTypes: {}, vsJoueurs: {}, scores: {}, scoreRef: null, conseils: null, vsPaliers: {}, scoresPaliers: {},
+    };
 
     fait = 0;
-    total = types.length * N_TYPES + autres.length * N_JOUEURS + (autres.length + 1) * types.length * N_RANG
+    total = types.length * N_TYPES * (1 + paliers.length) + autres.length * N_JOUEURS + (autres.length + 1) * types.length * N_RANG
       + (variantes.length + 1) * types.length * N_CONSEIL;
     avancer(0);
 
     afficherHeros();
+    afficherEquipement();
     afficherFiche();
     afficherTypes();
     afficherJoueurs();
@@ -135,7 +143,17 @@
       afficherTypes();
     }
     res.scores[moi.cle] = moyenne(types.map((t) => res.vsTypes[t.cle].taux));
-    afficherHeros(); afficherRang();
+    afficherHeros(); afficherRang(); afficherFiche();
+    // 1 bis. Le même personnage rééquipé à chaque palier, mêmes adversaires et mêmes graines
+    for (const pal of res.paliers) {
+      const vs = res.vsPaliers[pal.id] = {};
+      for (const t of types) {
+        vs[t.cle] = await serie(j, pal.profil, t, N_TYPES, GRAINE);
+        afficherTypes();
+      }
+      res.scoresPaliers[pal.id] = moyenne(types.map((t) => vs[t.cle].taux));
+      afficherHeros(); afficherRang(); afficherFiche(); afficherEquipement(); afficherConseils();
+    }
     // 2. Contre les vrais joueurs de votre rang
     for (const q of autres) {
       res.vsJoueurs[q.cle] = await serie(j, moi, q, N_JOUEURS, GRAINE);
@@ -146,7 +164,7 @@
       const adv = q === ref ? types : A.adversairesTypes(q.niveau);
       const taux = [];
       for (const t of adv) taux.push((await serie(j, q, t, N_RANG, GRAINE)).taux);
-      if (q === ref) res.scoreRef = moyenne(taux); else res.scores[q.cle] = moyenne(taux);
+      if (q === ref) { res.scoreRef = moyenne(taux); afficherFiche(); } else res.scores[q.cle] = moyenne(taux);
       afficherRang(); afficherHeros();
     }
     // 4. Conseils : mêmes graines pour la base et chaque variante, l'écart mesure la statistique
@@ -210,7 +228,8 @@
         <p class="sous">${esc(p.race || '')} ${esc(nomClasse(p))} · ${esc(specNom(p))} · niveau ${p.niveau}${p.ilvl ? ` · ilvl ${p.ilvl}` : ''}${p.guilde ? ` · ${esc(p.guilde)}` : ''}</p>
       </div>
       <div class="chiffres">
-        <div class="chiffre"><b>${score == null ? '…' : pc(score)}</b><span>victoires contre les ${res.types.length} spés</span></div>
+        <div class="chiffre"><b>${score == null ? '…' : pc(score)}</b><span>victoires${res.paliers.length ? ' · équipement porté' : ` contre les ${res.types.length} spés`}</span></div>
+        ${res.paliers.map((pal) => { const x = res.scoresPaliers[pal.id]; return `<div class="chiffre palier"><b>${x == null ? '…' : pc(x)}</b><span>${esc(pal.nom.toLowerCase())}</span></div>`; }).join('')}
         <div class="chiffre"><b>${complet && classement.length > 1 ? `${rangTexte(ma + 1)}<small style="font-size:.9rem"> / ${classement.length}</small>` : classement.length > 1 ? '…' : '—'}</b><span>${classement.length > 1 ? `joueurs de niveau ${p.niveau - ECART} à ${p.niveau + ECART}` : 'seul de son rang'}</span></div>
         <div class="chiffre"><b>${res.scoreRef == null ? '…' : pc(res.scoreRef)}</b><span>${esc(nomClasse(p))} ${esc(specNom(res.ref))} type</span></div>
       </div>
@@ -233,17 +252,22 @@
         <td class="n">${x.p.niveau}</td>
         <td class="n">${nf.format(x.p.stats.pv)}</td>
         <td style="min-width:150px">${barre(x.score)}</td></tr>`);
+    // Repères (joueur type, vous rééquipé) : chacun s'insère à sa place, les lignes sans score à la fin
     const ref = res.ref;
-    const ligneRef = `<tr class="reference"><td class="n">·</td><td>${qui(ref, { sous: 'repère, équipement de donjon estimé' })}</td><td class="n">${ref.niveau}</td><td class="n">${nf.format(ref.stats.pv)}</td><td style="min-width:150px">${barre(res.scoreRef)}</td></tr>`;
-    // Le repère s'insère à sa place dans le classement
-    let pos = lignes.length;
-    if (res.scoreRef != null) { pos = c.findIndex((x) => x.score == null || x.score < res.scoreRef); if (pos < 0) pos = lignes.length; }
-    lignes.splice(pos, 0, ligneRef);
+    const reperes = [{ p: ref, score: res.scoreRef, sous: 'repère, équipement de donjon estimé', cls: 'reference' }]
+      .concat(res.paliers.map((pal) => ({ p: { ...pal.profil, portrait: moi.portrait }, score: res.scoresPaliers[pal.id] ?? null, sous: `vous, ${pal.texte.split(' : ')[0]}`, cls: 'reference palier' })));
+    const ligne = (r) => `<tr class="${r.cls}"><td class="n">·</td><td>${qui(r.p, { sous: r.sous })}</td><td class="n">${r.p.niveau}</td><td class="n">${nf.format(r.p.stats.pv)}</td><td style="min-width:150px">${barre(r.score)}</td></tr>`;
+    const tout = c.map((x, i) => ({ score: x.score, html: lignes[i] }))
+      .concat(reperes.map((r) => ({ score: r.score, html: ligne(r), repere: true })));
+    // Tri stable : à score égal, le vrai joueur passe avant le repère
+    tout.sort((a, b) => (b.score ?? -1) - (a.score ?? -1) || (a.repere ? 1 : 0) - (b.repere ? 1 : 0));
+    lignes.splice(0, lignes.length, ...tout.map((x) => x.html));
     $('t-rang').innerHTML = `<thead><tr><th class="n">Rang</th><th>Personnage</th><th class="n">Niv.</th><th class="n">PV</th><th>Victoires</th></tr></thead><tbody>${lignes.join('')}</tbody>`;
   }
 
   function afficherFiche() {
     const p = moi, t = res.ref, s = p.stats, ts = t.stats;
+    const paliers = res.paliers;
     const dps = (st) => (st.arme && st.arme.vitesse ? (st.arme.min + st.arme.max) / 2 / st.arme.vitesse : 0);
     const lignes = [
       ['Points de vie', (st) => st.pv, nf.format],
@@ -256,33 +280,97 @@
       ['Parade', (st) => st.parade, (x) => `${n1.format(x)} %`, (st) => st.parade > 0 || ts.parade > 0],
       ['Armure', (st) => st.armure, nf.format],
     ].filter((l) => !l[3] || l[3](s));
-    $('intro-fiche').textContent = `Vos statistiques (fiche Blizzard, talents compris) face au ${t.nom.toLowerCase().replace(/ type$/, '')} type de niveau ${p.niveau}${res.pairs.length > 1 ? `, et votre place parmi les ${res.pairs.length} joueurs de votre rang` : ''}.`;
+    const typeNom = t.nom.toLowerCase().replace(/ type$/, '');
+    $('intro-fiche').textContent = paliers.length
+      ? `Vos statistiques (fiche Blizzard, talents compris) avec votre équipement, puis avec le meilleur équipement hors donjon et la suite épique de donjon de votre niveau, face au ${typeNom} type. Les écarts sont donnés par rapport à l'équipement porté.`
+      : `Vos statistiques (fiche Blizzard, talents compris) face au ${typeNom} type de niveau ${p.niveau}${res.pairs.length > 1 ? `, et votre place parmi les ${res.pairs.length} joueurs de votre rang` : ''}.`;
+    const ecartTxt = (a, b) => {
+      if (!b) return '';
+      const e = (a - b) / b;
+      const cls = Math.abs(e) < 0.05 ? 'discret' : e > 0 ? 'ecart-plus' : 'ecart-moins';
+      return `<small class="${cls}">${e > 0 ? '+' : e < 0 ? '−' : ''}${Math.abs(Math.round(e * 100))} %</small>`;
+    };
+    const rangs = res.pairs.length > 1;
     const html = lignes.map(([nom, f, fmt]) => {
       const a = f(s) || 0, b = f(ts) || 0;
-      const ecart = b ? (a - b) / b : 0;
       const valeurs = res.pairs.map((q) => f(q.stats) || 0).sort((x, y) => y - x);
-      const rang = valeurs.indexOf(a) + 1;
-      const cls = Math.abs(ecart) < 0.05 ? '' : ecart > 0 ? 'ecart-plus' : 'ecart-moins';
-      return `<tr><td>${nom}</td><td class="n"><b>${fmt(a)}</b></td><td class="n">${fmt(b)}</td>
-        <td class="n ${cls}">${b ? `${ecart > 0 ? '+' : ecart < 0 ? '−' : ''}${Math.abs(Math.round(ecart * 100))} %` : '—'}</td>
-        ${res.pairs.length > 1 ? `<td class="n">${rangTexte(rang)} / ${valeurs.length}</td>` : ''}</tr>`;
-    }).join('');
-    $('t-fiche').innerHTML = `<thead><tr><th>Statistique</th><th class="n">Vous</th><th class="n">Type</th><th class="n">Écart</th>${res.pairs.length > 1 ? '<th class="n">Rang</th>' : ''}</tr></thead><tbody>${html}</tbody>`;
+      const cellesPaliers = paliers.map((pal) => { const v = f(pal.profil.stats) || 0; return `<td class="n palier">${fmt(v)}${ecartTxt(v, a)}</td>`; }).join('');
+      return `<tr><td>${nom}</td><td class="n"><b>${fmt(a)}</b></td>${cellesPaliers}<td class="n">${fmt(b)}${paliers.length ? '' : ecartTxt(a, b)}</td>
+        ${rangs ? `<td class="n">${rangTexte(valeurs.indexOf(a) + 1)} / ${valeurs.length}</td>` : ''}</tr>`;
+    });
+    // Le bilan : victoires contre les spécialisations pour chaque équipement
+    const sc = res.scores[p.cle];
+    const pts = (x) => (x == null || sc == null ? '' : (() => { const d = Math.round((x - sc) * 100); return `<small class="${d >= 3 ? 'ecart-plus' : d <= -3 ? 'ecart-moins' : 'discret'}">${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d)} pt</small>`; })());
+    html.push(`<tr class="bilan"><td>Victoires contre les ${res.types.length} spés</td><td class="n"><b>${sc == null ? '…' : pc(sc)}</b></td>${paliers.map((pal) => { const x = res.scoresPaliers[pal.id]; return `<td class="n palier">${x == null ? '…' : pc(x)}${pts(x)}</td>`; }).join('')}<td class="n">${res.scoreRef == null ? '…' : pc(res.scoreRef)}</td>${rangs ? '<td></td>' : ''}</tr>`);
+    $('t-fiche').innerHTML = `<thead><tr><th>Statistique</th><th class="n">${paliers.length ? 'Porté' : 'Vous'}</th>${paliers.map((pal) => `<th class="n palier">${esc(pal.court[0].toUpperCase() + pal.court.slice(1))}</th>`).join('')}<th class="n">Type</th>${rangs ? '<th class="n">Rang</th>' : ''}</tr></thead><tbody>${html.join('')}</tbody>`;
   }
 
-  function ligneDuel(adv, r, sous) {
+  // ------------------------------------------------------------ équipement objet par objet
+  const QUALITE_CLS = { POOR: 'q-mediocre', COMMON: 'q-commun', UNCOMMON: 'q-inhabituel', RARE: 'q-rare', EPIC: 'q-epique', LEGENDARY: 'q-legendaire' };
+  const jauge = (x) => {
+    const cls = x >= 0.95 ? 'bon' : x >= 0.7 ? 'moyen' : 'mauvais';
+    return `<div class="${cls}" style="display:flex;gap:8px;align-items:center"><div class="barre jauge" style="flex:1"><i style="width:${Math.min(100, Math.round(x * 100))}%"></i></div><span class="taux num">${pc(x)}</span></div>`;
+  };
+  // Les emplacements les plus en retard sur le palier hors donjon (en points de caractéristique)
+  const enRetard = () => (res.equip ? res.equip.lignes.filter((l) => l.manque >= 1).sort((a, b) => b.manque - a.manque).slice(0, 3) : []);
+
+  function afficherEquipement() {
+    const eq = res.equip;
+    if (!eq) {
+      $('intro-equipement').textContent = 'L\'équipement de ce personnage n\'est pas encore lu par l\'armurerie : il apparaîtra à sa prochaine lecture.';
+      $('resume-equipement').innerHTML = '';
+      $('t-equipement').innerHTML = '';
+      return;
+    }
+    const [h, d] = res.paliers;
+    $('intro-equipement').innerHTML = `Chaque objet porté comparé à deux paliers de votre niveau (${moi.niveau}) : `
+      + `<b class="q-rare">meilleur hors donjon</b>, ${esc(h.texte)} ; <b class="q-epique">donjon épique</b>, ${esc(d.texte)}. `
+      + 'La fiche ne donne pas le niveau d\'objet : il est estimé par la somme des statistiques de l\'objet (et par son DPS pour une arme). '
+      + 'Bijoux et reliques gardent leur effet et ne sont pas comptés ; enchantements, race et talents sont conservés dans les paliers.';
+    const sc = res.scores[moi.cle];
+    const gain = (id) => { const x = res.scoresPaliers[id]; return x == null || sc == null ? '…' : `${pc(x)} de victoires (${x - sc >= 0 ? '+' : '−'}${Math.abs(Math.round((x - sc) * 100))} pt)`; };
+    $('resume-equipement').innerHTML = `
+      <div class="chiffre"><b>${pc(eq.horsDonjon)}</b><span>de la valeur du palier hors donjon</span></div>
+      <div class="chiffre"><b>${pc(eq.donjon)}</b><span>de la valeur de la suite épique</span></div>
+      <div class="chiffre"><b class="q-rare">${gain(h.id)}</b><span>rééquipé hors donjon</span></div>
+      <div class="chiffre"><b class="q-epique">${gain(d.id)}</b><span>rééquipé en suite épique</span></div>`;
+    const retard = new Set(enRetard().map((l) => l.emplacement));
+    const dpsCell = (l) => (l.dps == null ? '<td class="n discret">—</td>'
+      : `<td class="n">${l.dps ? n1.format(l.dps) : '—'} <small class="discret">/ ${n1.format(l.dpsHorsDonjon)} / ${n1.format(l.dpsDonjon)}</small></td>`);
+    const rows = eq.lignes.map((l) => {
+      const o = l.objet;
+      const objet = o
+        ? `<div class="qui">${o.icone ? `<img src="${esc(o.icone)}" alt="" width="24" height="24" loading="lazy" onerror="this.style.visibility='hidden'">` : ''}<div style="min-width:0"><span class="nom ${QUALITE_CLS[o.qualite] || ''}">${esc(o.nom)}</span><div class="discret" style="font-size:12px">${esc([E.NOMS_QUALITE[o.qualite], o.sousType, l.ilvl ? `niveau d'objet ≈ ${l.ilvl}` : ''].filter(Boolean).join(' · '))}</div></div></div>`
+        : '<span class="discret">Emplacement vide</span>';
+      return `<tr class="${retard.has(l.emplacement) ? 'retard' : ''}"><td>${esc(l.emplacementNom)}${retard.has(l.emplacement) ? '<div class="etiquette">à remplacer</div>' : ''}</td><td>${objet}</td>
+        <td style="min-width:130px">${jauge(l.horsDonjon)}</td><td style="min-width:130px">${jauge(l.donjon)}</td>${dpsCell(l)}</tr>`;
+    }).join('');
+    $('t-equipement').innerHTML = `<thead><tr><th>Emplacement</th><th>Objet porté</th><th>Vs hors donjon</th><th>Vs donjon épique</th><th class="n">DPS porté / hors donj. / donj.</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  function ligneDuel(adv, r, sous, extra = '') {
     return `<tr><td>${qui(adv, { sous, lien: !adv.type })}</td>
-      <td style="min-width:150px">${barre(r ? r.taux : null)}</td>
+      <td style="min-width:150px">${barre(r ? r.taux : null)}</td>${extra}
       <td class="n">${r ? `${n1.format(r.duree)} s` : ''}</td>
       <td class="n">${r ? `<button type="button" class="voir" data-adv="${esc(adv.cle)}">Voir le duel</button>` : ''}</td></tr>`;
   }
   const enteteDuels = '<thead><tr><th>Adversaire</th><th>Vos victoires</th><th class="n">Durée</th><th></th></tr></thead>';
 
   function afficherTypes() {
-    $('intro-types').textContent = `${N_TYPES} duels contre chacune des ${res.types.length} spécialisations jouées en duel, au niveau ${moi.niveau}, avec un équipement de donjon estimé.`;
+    $('intro-types').textContent = `${N_TYPES} duels contre chacune des ${res.types.length} spécialisations jouées en duel, au niveau ${moi.niveau}, avec un équipement de donjon estimé.${res.paliers.length ? ' Les colonnes de droite rejouent les mêmes duels avec vous rééquipé (écart en points avec votre équipement).' : ''}`;
     const rows = res.types.map((t) => ({ t, r: res.vsTypes[t.cle] }));
     if (rows.every((x) => x.r)) rows.sort((a, b) => b.r.taux - a.r.taux);
-    $('t-types').innerHTML = enteteDuels + `<tbody>${rows.map(({ t, r }) => ligneDuel(t, r)).join('')}</tbody>`;
+    // Le même duel avec l'équipement de chaque palier
+    const extra = (t, r) => res.paliers.map((pal) => {
+      const x = (res.vsPaliers[pal.id] || {})[t.cle];
+      if (!x) return '<td class="n palier"><span class="attente">…</span></td>';
+      const d = r ? Math.round((x.taux - r.taux) * 100) : 0;
+      return `<td class="n palier"><span class="${classeTaux(x.taux)}">${pc(x.taux)}</span>${r && Math.abs(d) >= 3 ? `<small class="${d > 0 ? 'ecart-plus' : 'ecart-moins'}">${d > 0 ? '+' : '−'}${Math.abs(d)}</small>` : ''}</td>`;
+    }).join('');
+    const entete = res.paliers.length
+      ? `<thead><tr><th>Adversaire</th><th>Porté</th>${res.paliers.map((pal) => `<th class="n palier">${esc(pal.court[0].toUpperCase() + pal.court.slice(1))}</th>`).join('')}<th class="n">Durée</th><th></th></tr></thead>`
+      : enteteDuels;
+    $('t-types').innerHTML = entete + `<tbody>${rows.map(({ t, r }) => ligneDuel(t, r, undefined, extra(t, r))).join('')}</tbody>`;
   }
 
   function afficherJoueurs() {
@@ -320,6 +408,16 @@
     const faciles = types.filter((y) => y.r.taux > 0.7).sort((a, b) => b.r.taux - a.r.taux).slice(0, 3);
     if (durs.length) t.push(`<p><b>Adversaires difficiles :</b> ${durs.map((y) => `${esc(y.x.nom)} (${pc(y.r.taux)})`).join(', ')}. Ouvrez « Voir le duel » pour repérer quand le combat bascule.</p>`);
     if (faciles.length) t.push(`<p><b>Vos meilleurs duels :</b> ${faciles.map((y) => `${esc(y.x.nom)} (${pc(y.r.taux)})`).join(', ')}.</p>`);
+    if (res.equip && res.paliers.every((pal) => res.scoresPaliers[pal.id] != null)) {
+      const sc = res.scores[moi.cle];
+      const [h, d] = res.paliers.map((pal) => res.scoresPaliers[pal.id] - sc);
+      const signe = (x) => `${x >= 0 ? '+' : '−'}${Math.abs(Math.round(x * 100))} pt`;
+      const retard = enRetard();
+      const objets = retard.map((l) => `${esc(l.emplacementNom.toLowerCase())} (${l.objet ? `${esc(l.objet.nom)}, ${pc(l.horsDonjon)}` : 'vide'})`).join(', ');
+      t.push(`<p><b>Équipement :</b> ${h > 0.02
+        ? `passer au meilleur équipement hors donjon vous ferait gagner ${signe(h)} de victoires, la suite épique de donjon ${signe(d)}.`
+        : `votre équipement vaut déjà le meilleur hors donjon (${signe(h)} en le remplaçant) ; la suite épique de donjon change ${signe(d)}.`}${retard.length ? ` Remplacez d'abord : ${objets}.` : ''}</p>`);
+    }
     if (res.scoreRef != null && res.scores[moi.cle] != null) {
       const d = res.scores[moi.cle] - res.scoreRef;
       t.push(`<p>${Math.abs(d) < 0.03 ? 'Vous êtes au niveau' : d > 0 ? `Vous faites <b>mieux</b> (+${Math.round(d * 100)} pt) que` : `Vous êtes <b>en dessous</b> (−${Math.round(-d * 100)} pt) du`} joueur type de votre spécialisation${d < -0.03 ? ' : votre équipement a sans doute du retard pour votre niveau' : ''}.</p>`);
