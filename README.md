@@ -40,7 +40,11 @@ sans compilation.
 - **Équipement** : chaque objet porté comparé aux deux paliers de votre niveau, les trois emplacements les plus
   en retard mis en avant (voir plus bas).
 - **Duels** : 30 duels contre chaque spécialisation, 40 contre chaque vrai joueur du rang ;
-  « Voir le duel » rejoue un duel typique (courbe des PV, dégâts par technique, journal).
+  « Voir le duel » regroupe la série par issue (victoire, défaite, nul) et rejoue en cinématique le duel
+  le plus typique de chacune, pour toutes les classes : cadres d'unité (PV, mana, rage ou énergie, points
+  de combo, incantations, contrôles), arène vue de côté avec distance et chiffres flottants, formes du
+  druide, familiers, lecture ×1 à ×8, frise des sorts et décomptes ; puis courbe des PV, dégâts par
+  technique et journal (`public/simulateur/js/cinematique.js`, données de `Arene.scenarios` et `Arene.rejouer`).
 - **Conseils** : gain en points de victoire avec un peu plus de PV, PA, dégâts d'arme, puissance des sorts,
   critique ou armure (mêmes duels avec et sans), adversaires difficiles, gain d'un rééquipement.
 
@@ -66,16 +70,8 @@ Fonctionnement :
   spécialisations, et apparaît comme repère dans le classement.
 - Le bouton « Simuler » de chaque carte ouvre `/simulateur/?perso=<région>/<slug>`.
 
-### Simulateur détaillé druide farouche
-
-`/simulateur/druide.html` (repris de druidhow) : ours et félin contre chaque spécialisation, cinématique,
-guide par adversaire, calculateur de talents et conseils (talents, statistiques, enchantements, points
-d'héritage). Le serveur convertit chaque druide avec `druide.js` ; `GET /api/druides` les renvoie.
-Valeurs du jeu dans `public/simulateur/js/donnees.js`, moteur dans `moteur.js`. Lien depuis la page
-générique pour les druides.
-
-Tests : `npm test` (arène, conversion des combattants et des druides sur les fiches figées de
-`tests/fixtures/`, paliers d'équipement, moteur druide, icônes, conseiller).
+Tests : `npm test` (arène, scénarios et cinématique, conversion des combattants sur les fiches figées
+de `tests/fixtures/`, paliers d'équipement, icônes du moteur).
 
 ## Déploiement
 

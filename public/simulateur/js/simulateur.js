@@ -217,8 +217,6 @@
     const classement = classer();
     const ma = classement.findIndex((x) => x.p.cle === p.cle);
     const complet = classement.every((x) => x.score != null);
-    const druide = p.classe === 'druide'
-      ? `<a href="druide.html?perso=${encodeURIComponent(p.cle)}#armurerie">Simulateur détaillé druide farouche (formes, talents)</a>` : '';
     const h = $('heros');
     h.style.setProperty('--cls', couleur(p.classe));
     h.innerHTML = `
@@ -233,7 +231,7 @@
         <div class="chiffre"><b>${complet && classement.length > 1 ? `${rangTexte(ma + 1)}<small style="font-size:.9rem"> / ${classement.length}</small>` : classement.length > 1 ? '…' : '—'}</b><span>${classement.length > 1 ? `joueurs de niveau ${p.niveau - ECART} à ${p.niveau + ECART}` : 'seul de son rang'}</span></div>
         <div class="chiffre"><b>${res.scoreRef == null ? '…' : pc(res.scoreRef)}</b><span>${esc(nomClasse(p))} ${esc(specNom(res.ref))} type</span></div>
       </div>
-      <div class="liens">${p.urlArmurerie ? `<a href="${esc(p.urlArmurerie)}" rel="noopener" target="_blank">Fiche Blizzard</a>` : ''}${druide}</div>`;
+      <div class="liens">${p.urlArmurerie ? `<a href="${esc(p.urlArmurerie)}" rel="noopener" target="_blank">Fiche Blizzard</a>` : ''}</div>`;
   }
 
   function classer() {
@@ -426,6 +424,8 @@
   }
 
   // ------------------------------------------------------------ duel raconté
+  // Les duels de la série (mêmes graines) sont regroupés par issue ; chaque issue se rejoue en
+  // cinématique avec son duel le plus typique, l'issue la plus fréquente d'abord.
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button.voir');
     if (!b) return;
@@ -433,17 +433,37 @@
     const adv = res.types.find((t) => t.cle === cle) || res.autres.find((q) => q.cle === cle);
     if (!adv) return;
     const s = res.vsTypes[cle] || res.vsJoueurs[cle];
-    // Le duel montré finit comme la majorité de la série
-    const r = A.duelRaconte(moi, adv, s && s.taux >= 0.5 ? 0 : 1, GRAINE);
-    montrerDuel(adv, r, s);
+    const n = res.vsTypes[cle] ? N_TYPES : N_JOUEURS;
+    $('duel-titre').textContent = `${moi.nom} contre ${adv.nom}`;
+    $('duel-sous').textContent = '';
+    $('duel-attente').hidden = false;
+    $('cine').hidden = true;
+    $('duel').showModal();
+    // On laisse le dialog s'afficher avant de rejouer la série
+    setTimeout(() => {
+      const scenarios = A.scenarios(moi, adv, n, GRAINE);
+      $('duel-attente').hidden = true;
+      $('cine').hidden = false;
+      window.Cinematique.montrer({
+        moi: { nom: moi.nom, classe: moi.classe, sous: specNom(moi) || nomClasse(moi) },
+        adv: { nom: adv.nom, classe: adv.classe, sous: adv.type ? nomClasse(adv) : specNom(adv) || nomClasse(adv) },
+        scenarios,
+        rejouer: (sc) => A.rejouer(moi, adv, sc),
+        surDuel: (r, sc) => montrerDuel(adv, r, sc, s),
+        surTemps: (t) => teteCourbe(t),
+      });
+    }, 30);
   });
   $('duel-fermer').addEventListener('click', () => $('duel').close());
   $('duel').addEventListener('click', (e) => { if (e.target === $('duel')) $('duel').close(); });
+  $('duel').addEventListener('close', () => window.Cinematique.arreter());
 
-  function montrerDuel(adv, r, s) {
-    const issue = r.vainqueur === 0 ? 'Victoire' : r.vainqueur === 1 ? 'Défaite' : 'Match nul';
-    $('duel-titre').textContent = `${moi.nom} contre ${adv.nom}`;
-    $('duel-sous').textContent = `${issue} en ${n1.format(r.duree)} s${r.vainqueur != null ? `, il reste ${pc(r.pv[r.vainqueur])} des PV au vainqueur` : ''}. Duel typique d'une série gagnée à ${s ? pc(s.taux) : '—'}.`;
+  // Sous-titre, courbe, bilans et journal du duel rejoué ; r.moi : côté du personnage dans ce duel
+  function montrerDuel(adv, r, sc, s) {
+    const m = r.moi, a = 1 - m;
+    const issue = r.vainqueur == null ? 'Match nul' : r.vainqueur === m ? 'Victoire' : 'Défaite';
+    $('duel-sous').textContent = `${issue} en ${n1.format(r.duree)} s${r.vainqueur != null ? `, il reste ${pc(r.pv[r.vainqueur])} des PV au vainqueur` : ''}. `
+      + `Duel le plus typique de cette issue (${sc.n} duels sur ${s ? s.n : sc.n}) ; série gagnée à ${s ? pc(s.taux) : '—'}.`;
 
     const bilan = (b, nom) => {
       const lignes = Object.entries(b.degats).sort((x, y) => y[1].total - x[1].total).slice(0, 6);
@@ -452,18 +472,27 @@
       return `<div><h3>${esc(nom)}</h3><table><tbody>${lignes.map(([n, x]) => `<tr><td><div class="qui">${icone(x.icone)}<span class="nom">${esc(n)}</span></div></td><td class="n">${nf.format(Math.round(x.total))}</td><td class="n discret">${totalD ? Math.round(x.total / totalD * 100) : 0} %</td></tr>`).join('')}
         ${soins ? `<tr><td>Soins</td><td class="n ecart-plus">${nf.format(Math.round(soins))}</td><td></td></tr>` : ''}</tbody></table></div>`;
     };
-    $('duel-bilans').innerHTML = bilan(r.bilans[0], `Dégâts de ${moi.nom}`) + bilan(r.bilans[1], `Dégâts de ${adv.nom}`);
-    $('duel-journal').innerHTML = r.journal.map((l) => `<li class="c${l.cote} ${esc(l.type)}"><span class="num discret">${n1.format(l.t)} s</span>${icone(l.icone)}<span>${esc(l.texte)}</span></li>`).join('');
-    $('duel').showModal();
+    $('duel-bilans').innerHTML = bilan(r.bilans[m], `Dégâts de ${moi.nom}`) + bilan(r.bilans[a], `Dégâts de ${adv.nom}`);
+    // Couleurs du journal : c0 pour le personnage, c1 pour l'adversaire, quel que soit le côté de départ
+    $('duel-journal').innerHTML = r.journal.map((l) => `<li class="c${l.cote == null ? '' : l.cote === m ? 0 : 1} ${esc(l.type)}"><span class="num discret">${n1.format(l.t)} s</span>${icone(l.icone)}<span>${esc(l.texte)}</span></li>`).join('');
     // La courbe se dessine à la largeur réelle de la fenêtre : le texte garde sa taille sur téléphone
     $('duel-courbe').innerHTML = courbe(r, adv, $('duel-courbe').clientWidth);
     $('duel-journal').parentNode.scrollTop = 0;
+  }
+  let echelleCourbe = null;
+  function teteCourbe(t) {
+    const l = document.getElementById('tete-courbe');
+    if (!l || !echelleCourbe) return;
+    const x = echelleCourbe(t).toFixed(1);
+    l.setAttribute('x1', x); l.setAttribute('x2', x);
   }
 
   function courbe(r, adv, largeur) {
     const W = Math.max(280, Math.round(largeur || 640)), H = W < 500 ? 160 : 190, g = 40, d = 10, h = 14, bas = 22;
     const T = Math.max(r.duree, 1);
-    const x = (t) => g + (t / T) * (W - g - d);
+    const x = (t) => g + (Math.min(t, T) / T) * (W - g - d);
+    echelleCourbe = x;
+    const m = r.moi || 0;
     const y = (v) => h + (1 - v) * (H - h - bas);
     const pts = (i) => r.courbe.map((c) => `${x(c[0]).toFixed(1)},${y(c[i + 1]).toFixed(1)}`).join(' ');
     const pas = T > 60 ? 20 : T > 25 ? 10 : 5;
@@ -471,8 +500,9 @@
     for (let t = 0; t <= T; t += pas) ticks += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle">${t} s</text>`;
     const grille = [0, 0.5, 1].map((v) => `<line x1="${g}" x2="${W - d}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${g - 6}" y="${y(v) + 4}" text-anchor="end">${v * 100} %</text>`).join('');
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Points de vie des deux combattants au fil du duel">${grille}${ticks}
-      <polyline points="${pts(1)}" fill="none" stroke="var(--adv)" stroke-width="2" stroke-linejoin="round"/>
-      <polyline points="${pts(0)}" fill="none" stroke="var(--vous)" stroke-width="2.5" stroke-linejoin="round"/></svg>
+      <polyline points="${pts(1 - m)}" fill="none" stroke="var(--adv)" stroke-width="2" stroke-linejoin="round"/>
+      <polyline points="${pts(m)}" fill="none" stroke="var(--vous)" stroke-width="2.5" stroke-linejoin="round"/>
+      <line id="tete-courbe" class="tete-courbe" x1="${g}" x2="${g}" y1="${h}" y2="${H - bas}"/></svg>
       <div class="legende"><span style="--c:var(--vous)">${esc(moi.nom)}</span><span style="--c:var(--adv)">${esc(adv.nom)}</span></div>`;
   }
 

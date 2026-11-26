@@ -13,6 +13,8 @@
   --vous: #a86c06; --adv: #2f62b8;
   --q-mediocre: #7a7a7a; --q-commun: #3d3b36; --q-inhabituel: #1c7a12; --q-rare: #0a5fb8; --q-epique: #8434c4; --q-legendaire: #b85a00;
   --retard: #fbe9e6;
+  --vie: #2f7d33; --mana: #2c63c4; --rage: #b8352a; --energie: #8a6a00; --sol: #e2dccc;
+  --ciel: #ece7db; --forme-ours: #8a5a34; --forme-felin: #c9a227;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -23,6 +25,8 @@
     --vous: #e8b85a; --adv: #6f9be8;
     --q-mediocre: #9d9d9d; --q-commun: #e6e3da; --q-inhabituel: #3cd62a; --q-rare: #2e8cf0; --q-epique: #b469f0; --q-legendaire: #ff8a1a;
     --retard: #2d1a18;
+    --vie: #6cc46a; --mana: #6a9cf0; --rage: #ec6a5b; --energie: #e0bd3a; --sol: #262a33;
+    --ciel: #1c2029; --forme-ours: #b07a4c; --forme-felin: #d8b43c;
     color-scheme: dark;
   }
 }
@@ -33,6 +37,8 @@
   --vous: #e8b85a; --adv: #6f9be8;
   --q-mediocre: #9d9d9d; --q-commun: #e6e3da; --q-inhabituel: #3cd62a; --q-rare: #2e8cf0; --q-epique: #b469f0; --q-legendaire: #ff8a1a;
   --retard: #2d1a18;
+  --vie: #6cc46a; --mana: #6a9cf0; --rage: #ec6a5b; --energie: #e0bd3a; --sol: #262a33;
+  --ciel: #1c2029; --forme-ours: #b07a4c; --forme-felin: #d8b43c;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -134,11 +140,119 @@ tr.retard td:first-child { box-shadow: inset 3px 0 0 var(--mauvais); }
 .jauge::after { display: none; }
 
 /* Duel raconté */
-dialog { width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); }
+dialog { width: min(920px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); }
 dialog::backdrop { background: rgb(0 0 0 / .55); }
 .dlg { display: grid; gap: 14px; padding: 16px; }
 .dlg header { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
 .dlg h2 { font-size: 1.2rem; }
+.dlg h3.sous-titre { font-size: 1rem; border-top: 1px solid var(--line); padding-top: 12px; }
+
+/* Cinématique : issues, deux cadres d'unité, une arène vue de côté, une frise des sorts */
+.cine { display: grid; gap: 10px; min-width: 0; }
+.cine .ico { flex: none; display: block; border-radius: 3px; object-fit: cover; box-shadow: 0 0 0 1px var(--line); }
+.cine .ico.vide { background: var(--panel-2); box-shadow: none; }
+.scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 8px; }
+.scenario { text-align: left; padding: 8px 10px; display: grid; gap: 1px; align-content: start; border-radius: 8px; }
+.scenario[aria-pressed="true"] { border-color: var(--gold); background: var(--gold-soft); }
+.scenario b { display: flex; align-items: center; gap: 7px; }
+.scenario b i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.scenario.victoire b i { background: var(--bon); } .scenario.defaite b i { background: var(--mauvais); }
+.scenario small { color: var(--muted); font-size: 13px; }
+.scenario .num { font-size: 12px; color: var(--muted); }
+.scene { border: 1px solid var(--line); border-radius: 8px; background: var(--ciel); overflow: hidden; display: grid; }
+.cadres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
+.cadre { background: var(--panel); padding: 10px 12px; display: grid; gap: 5px; min-width: 0; box-shadow: inset 0 3px 0 var(--camp); }
+.cadre.camp0 { --camp: var(--vous); } .cadre.camp1 { --camp: var(--adv); }
+.cadre .tete { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 1.6em; min-width: 0; }
+.cadre .tete b { font-size: 1rem; overflow-wrap: anywhere; }
+.cadre .tete .sous-nom { font-size: 12px; color: var(--muted); }
+.cadre .tete .cc { font-size: 11px; font-weight: 700; padding: 0 8px; border-radius: 99px; background: var(--gold-soft); color: var(--text); border: 1px solid var(--gold); }
+.rangee { display: grid; grid-template-columns: minmax(0, 1fr) 12ch; gap: 8px; align-items: center; }
+.rangee .val { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cine .jauge { height: 10px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.cine .jauge.fine { height: 6px; }
+.cine .jauge span { display: block; height: 100%; background: var(--vie); transform-origin: left; }
+.pips { display: flex; gap: 3px; height: 6px; }
+.pips i { flex: 1; border-radius: 2px; background: var(--panel-2); }
+.pips i.on { background: var(--gold); }
+.fil { height: 22px; display: flex; gap: 4px; overflow: hidden; align-items: center; }
+.fil > span { flex: none; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 0 7px 0 1px; border-radius: 4px; color: var(--muted); white-space: nowrap; border: 1px solid transparent; }
+.fil > span:not(.neuf) .ico { opacity: .7; }
+.fil > span.neuf { color: var(--text); background: var(--gold-soft); border-color: var(--gold); font-weight: 600; }
+.incant { position: relative; display: flex; align-items: center; height: 20px; width: 100%; border-radius: 4px; background: var(--panel-2); overflow: hidden; font-size: 12px; }
+.incant .ico { position: relative; margin-left: 1px; }
+.incant i { position: absolute; inset: 0; background: var(--gold-soft); transform-origin: left; box-shadow: inset -2px 0 0 var(--gold); }
+.incant b { position: relative; padding-inline: 7px; line-height: 20px; font-weight: 500; white-space: nowrap; }
+.arene { position: relative; height: 186px; overflow: hidden; background: linear-gradient(to bottom, var(--ciel) 0 140px, var(--sol) 140px); }
+.monde { position: absolute; inset: 0 26px; }
+.repere { position: absolute; top: 140px; padding-top: 24px; transform: translateX(-50%); font-size: 11px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.repere::before { content: ""; position: absolute; left: 50%; top: 0; height: 6px; border-left: 1px solid var(--muted); }
+.lien { position: absolute; top: 124px; border-top: 1px dashed var(--muted); }
+.ecart { position: absolute; top: 105px; transform: translateX(-50%); font-size: 11px; color: var(--muted); white-space: nowrap; }
+/* Combattant : un point d'ancrage au sol ; le jeton de classe, ou la silhouette du druide en forme animale */
+.fig { position: absolute; top: 140px; width: 0; height: 0; --camp: var(--vous); }
+.fig.camp1 { --camp: var(--adv); }
+.fig::before { content: ""; position: absolute; left: -24px; top: -3px; width: 48px; height: 6px; border-radius: 50%; background: rgb(0 0 0 / .18); }
+.fig.controle::after { content: ""; position: absolute; left: -34px; top: -8px; width: 68px; height: 16px; border-radius: 50%; border: 2px dashed var(--gold); box-sizing: border-box; }
+.fig.cache { opacity: .4; }
+.jeton { position: absolute; left: -17px; bottom: 2px; width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--camp); box-shadow: 0 0 0 2px var(--panel), 0 2px 5px rgb(0 0 0 / .3); background: var(--panel-2) center / cover no-repeat; transition: opacity .22s, transform .22s; }
+.jeton.off { opacity: 0; transform: scale(.6); }
+.fig.cache .jeton { border-style: dashed; }
+.sils { position: absolute; left: 0; bottom: 0; width: 0; height: 0; }
+.silhouette { position: absolute; left: 0; bottom: 0; transform: translateX(-50%) scale(.6); transform-origin: 50% 100%; opacity: 0; transition: opacity .22s, transform .22s; }
+.silhouette.on { opacity: 1; transform: translateX(-50%); }
+.silhouette svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.silhouette[data-forme="ours"] { --c: var(--forme-ours); }
+.silhouette[data-forme="felin"] { --c: var(--forme-felin); }
+.silhouette .corps { fill: var(--c); stroke: var(--camp); stroke-width: 1.4; stroke-linejoin: round; }
+.silhouette .loin { fill: color-mix(in srgb, var(--c) 76%, #000); stroke: var(--text); stroke-width: .9; stroke-opacity: .45; stroke-linejoin: round; }
+.silhouette .trait { fill: none; stroke: var(--text); stroke-opacity: .35; stroke-width: 1; stroke-linecap: round; }
+.silhouette .oeil { fill: var(--panel); }
+.silhouette .truffe { fill: var(--text); fill-opacity: .8; }
+.nom-jeton { position: absolute; top: 144px; font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.familier { position: absolute; top: 118px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: var(--panel-2) center / cover no-repeat; border: 2px solid var(--adv); box-shadow: 0 0 0 1.5px var(--panel); }
+.familier.camp0 { border-color: var(--vous); }
+.flottant { position: absolute; top: 58px; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; display: grid; justify-items: center; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.flottant .ligne { display: flex; align-items: center; gap: 4px; }
+.flottant small { font-size: 11px; font-weight: 500; opacity: .85; }
+.flottant.sur1 { color: var(--vous); } .flottant.sur0 { color: var(--adv); }
+.flottant.crit { font-size: 16px; font-weight: 700; }
+.flottant.soin { color: var(--vie); }
+.flottant.rate { color: var(--muted); font-style: italic; font-weight: 500; }
+.bandeau { display: flex; gap: 12px; align-items: baseline; padding: 6px 12px; background: var(--panel); border-top: 1px solid var(--line); min-height: 34px; }
+.bandeau .num { color: var(--muted); font-size: 13px; flex: none; }
+.bandeau #cine-legende { color: var(--gold); font-weight: 700; font-size: 14px; min-width: 0; }
+.controles { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.controles .principal { background: var(--gold); border-color: var(--gold); color: var(--panel); font-weight: 600; min-width: 7.5em; }
+.segments { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.segments button { border: 0; border-radius: 0; padding: 6px 11px; font-variant-numeric: tabular-nums; }
+.segments button + button { border-left: 1px solid var(--line); }
+.segments button[aria-pressed="true"] { background: var(--gold-soft); font-weight: 700; }
+.frise { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+.frise .etiq { font-size: 12px; color: var(--muted); font-weight: 600; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frise input[type="range"] { width: 100%; margin: 0; accent-color: var(--gold); }
+.piste { position: relative; height: 14px; background: var(--panel-2); border-radius: 3px; cursor: pointer; touch-action: none; }
+.piste i { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--vous); border-radius: 1px; }
+.piste.adv i { background: var(--adv); }
+.piste i.forme { background: var(--muted); }
+.piste .tete-lecture { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text); border-radius: 1px; }
+.decomptes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.decomptes h3 { font-size: .9rem; margin-bottom: 4px; }
+.decompte { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; align-content: start; }
+.decompte li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 2px 6px 2px 2px; border-radius: 4px; }
+.decompte li.seul { display: block; padding-left: 6px; }
+.decompte li.avenir .ico { filter: grayscale(1); opacity: .45; }
+.decompte li .n { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.decompte li.avenir { color: var(--muted); }
+.decompte li.recent { background: var(--gold-soft); }
+.courbe .tete-courbe { stroke: var(--text); stroke-width: 1; stroke-dasharray: 3 3; }
+@media (max-width: 560px) {
+  .cadre .max { display: none; }
+  .rangee { grid-template-columns: minmax(0, 1fr) 5ch; }
+  .fig, .familier { scale: .85; }
+  .decomptes { grid-template-columns: minmax(0, 1fr); }
+  .dlg { padding: 12px; }
+}
 .courbe svg { display: block; width: 100%; height: auto; }
 .courbe text { fill: var(--muted); font-size: 12px; font-family: inherit; }
 .legende { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
@@ -232,6 +346,38 @@ dialog::backdrop { background: rgb(0 0 0 / .55); }
       </div>
       <button type="button" id="duel-fermer">Fermer</button>
     </header>
+    <p class="discret" id="duel-attente" hidden>Calcul des duels de la série…</p>
+    <div class="cine" id="cine">
+      <div class="scenarios" id="cine-scenarios" role="group" aria-label="Issues des duels de la série"></div>
+      <div class="scene">
+        <div class="cadres">
+          <div class="cadre camp0" id="cine-cadre0"></div>
+          <div class="cadre camp1" id="cine-cadre1"></div>
+        </div>
+        <div class="arene" id="cine-arene" role="img" aria-label="Les deux combattants vus de côté"><div class="monde" id="cine-monde"></div></div>
+        <div class="bandeau"><span class="num" id="cine-t">0,0 s</span><span id="cine-legende"></span></div>
+      </div>
+      <div class="controles">
+        <button type="button" class="principal" id="cine-lecture">▶ Lecture</button>
+        <button type="button" id="cine-debut">↺ Début</button>
+        <div class="segments" id="cine-vitesse" role="group" aria-label="Vitesse de lecture">
+          <button type="button" data-v="1" aria-pressed="false">×1</button>
+          <button type="button" data-v="2" aria-pressed="true">×2</button>
+          <button type="button" data-v="4" aria-pressed="false">×4</button>
+          <button type="button" data-v="8" aria-pressed="false">×8</button>
+        </div>
+      </div>
+      <div class="frise">
+        <span class="etiq" id="cine-etiq0">Vous</span><div class="piste" id="cine-piste0"></div>
+        <span class="etiq" id="cine-etiq1">Adversaire</span><div class="piste adv" id="cine-piste1"></div>
+        <span></span><input type="range" id="cine-temps" min="0" max="10" step="0.1" value="0" aria-label="Moment du duel">
+      </div>
+      <div class="decomptes">
+        <div><h3 id="cine-titre-dc0">Vos sorts et techniques</h3><ol class="decompte" id="cine-decompte0"></ol></div>
+        <div><h3 id="cine-titre-dc1">Sorts et techniques de l'adversaire</h3><ol class="decompte" id="cine-decompte1"></ol></div>
+      </div>
+    </div>
+    <h3 class="sous-titre">Points de vie, dégâts et journal de ce duel</h3>
     <div class="courbe" id="duel-courbe"></div>
     <div class="bilans" id="duel-bilans"></div>
     <div class="journal"><ol id="duel-journal"></ol></div>
@@ -240,6 +386,7 @@ dialog::backdrop { background: rgb(0 0 0 / .55); }
 
 <script src="js/arene.js"></script>
 <script src="js/equipement.js"></script>
+<script src="js/cinematique.js"></script>
 <script src="js/simulateur.js"></script>
 </body>
 </html>

@@ -142,6 +142,13 @@
   function log(s, c, type, texte, icone) {
     if (s.journal) s.journal.push({ t: Math.round(s.t * 10) / 10, cote: c ? c.cote : null, type, texte, icone: icone || null });
   }
+  // Cinématique : coups reçus (chiffres flottants) et sorts lancés (frise), seulement en mode journal
+  function coup(s, cible, nom, icone, m, genre) {
+    if (s.coups) s.coups.push({ t: s.t, cible: cible.cote, nom, icone: icone || null, m: Math.round(m || 0), genre });
+  }
+  function action(s, c, ab) {
+    if (s.actions) s.actions.push({ t: s.t, camp: c.cote, nom: ab.nom, icone: ab.icone || null, genre: /^Forme/.test(ab.nom) ? 'forme' : ab.cible === 'soi' ? 'soi' : 'cible' });
+  }
   function compter(c, cle, nom, x, icone) {
     const b = c.bilan[cle];
     if (!b[nom]) b[nom] = { total: 0, n: 0, icone: icone || null };
@@ -207,7 +214,7 @@
   function degats(s, src, cible, montant, o) {
     src.absorbe = 0;
     if (cible.pv <= 0 || src.pv <= 0 && !o.periodique) return 0;
-    if (immunise(s, cible)) { log(s, src, 'echec', `${o.nom} : ${cible.nom} est insensible`, o.icone); return 0; }
+    if (immunise(s, cible)) { log(s, src, 'echec', `${o.nom} : ${cible.nom} est insensible`, o.icone); coup(s, cible, o.nom, o.icone, 0, 'insensible'); return 0; }
     let m = montant * multiplicateur(s, src, cible, o);
     if (o.ecole === 'physique' && !o.saignement) m *= 1 - reduction(cible.armure, src.niveau);
     if (o.crit) m *= o.multCrit || (o.ecole === 'physique' ? 2 : 1.5);
@@ -220,6 +227,7 @@
     }
     src.absorbe = absorbe;
     cible.pv -= m;
+    coup(s, cible, o.nom, o.icone, m || absorbe, m ? (o.crit ? 'crit' : 'degat') : 'absorbé');
     compter(src, 'degats', o.nom, m, o.icone);
     if (src.familierDe != null) { /* sans objet */ }
     if (cible.classe === 'guerrier' || cible.forme === 'ours') cible.rage = Math.min(100, cible.rage + 2.5 * m / facteurRage(cible.niveau));
@@ -243,6 +251,7 @@
     if (aura(s, c, 'frappeMortelle')) m *= 0.5;
     m = Math.round(Math.min(m, c.pvMax - c.pv));
     c.pv += m;
+    if (m > 0) coup(s, c, nom, icone, m, 'soin');
     compter(c, 'soins', nom, m, icone);
     return m;
   }
@@ -275,6 +284,7 @@
     const j = jet(s, c, e, o);
     if (j === 'rate' || j === 'esquive' || j === 'parade') {
       log(s, c, 'echec', `${ab.nom} : ${LIBELLES[j]}`, ab.icone);
+      coup(s, e, ab.nom, ab.icone, 0, LIBELLES[j]);
       if (j === 'esquive') c.esquiveSubie = s.t;
       return null;
     }
@@ -288,7 +298,7 @@
   function sortDegats(s, c, e, ab, montant, o) {
     o = o || {};
     const ecart = Math.max(0, e.niveau - c.niveau);
-    if (s.alea() * 100 < 4 + 2 * ecart) { log(s, c, 'echec', `${ab.nom} : résisté`, ab.icone); return null; }
+    if (s.alea() * 100 < 4 + 2 * ecart) { log(s, c, 'echec', `${ab.nom} : résisté`, ab.icone); coup(s, e, ab.nom, ab.icone, 0, 'résisté'); return null; }
     const crit = s.alea() * 100 < c.critSort + (o.critBonus || 0) || !!aura(s, c, 'maitrise');
     if (aura(s, c, 'maitrise')) retirer(c, 'maitrise');
     const x = degats(s, c, e, montant + (ab.coef || 0) * c.ps, Object.assign({ nom: ab.nom, icone: ab.icone, ecole: ab.ecole, crit }, o));
@@ -869,6 +879,7 @@
     if (furtif(s, c) && !ab.gardeFurtif) retirer(c, 'furtif');
     let incant = tempsIncant;
     if (incant && aura(s, c, 'presence')) { incant = 0; retirer(c, 'presence'); }
+    action(s, c, ab);
     if (ab.canal) {
       c.canal = { ab, cible: e, fin: s.t + ab.canal, prochain: s.t + ab.canal / ab.ticks };
       log(s, c, 'sort', `${ab.nom} (canalisé)`, ab.icone);
@@ -932,7 +943,7 @@
         if (c.prochainCoup) { if (c.classe === 'guerrier') c.rage -= 15; if (ours) c.rage -= 15; }
         const bonus = c.prochainCoup ? c.prochainCoup.bonus : 0;
         c.prochainCoup = null;
-        if (j === 'rate' || j === 'esquive' || j === 'parade') { if (j === 'esquive') c.esquiveSubie = s.t; continue; }
+        if (j === 'rate' || j === 'esquive' || j === 'parade') { coup(s, e, nom, icone, 0, LIBELLES[j]); if (j === 'esquive') c.esquiveSubie = s.t; continue; }
         let m = felin ? c.coupFelin(s) : ours ? c.coupFelin(s) * 2.5 : tirage(s, c) * c.multBlanc;
         m += bonus;
         if (j === 'bloque') m = Math.max(0, m - e.valeurBlocage);
@@ -956,7 +967,7 @@
         const w = c.distance || { vitesse: 3 };
         c.tir = s.t + w.vitesse / hate;
         const j = jet(s, c, e, { distance: true });
-        if (j === 'rate') continue;
+        if (j === 'rate') { coup(s, e, 'Tir automatique', 'inv_weapon_bow_05', 0, 'raté'); continue; }
         degats(s, c, e, c.tirDistance(s), { nom: 'Tir automatique', icone: 'inv_weapon_bow_05', ecole: 'physique', crit: j === 'critique' });
       }
     }
@@ -1022,11 +1033,33 @@
     }
   }
 
+  // Image de la cinématique : ce que montrent les cadres d'unité et l'arène à l'instant t
+  function image(s) {
+    return {
+      t: s.t,
+      c: s.c.map((c) => {
+        const res = c.forme === 'felin' ? 'energie' : c.forme === 'ours' ? 'rage' : c.ressource;
+        const v = res === 'mana' ? (c.manaMax ? c.mana / c.manaMax : 0) : c[res] / 100;
+        const k = c.incant || c.canal;
+        const ctl = CONTROLES.find((id) => aura(s, c, id)) || (enracine(s, c) ? 'racine' : null);
+        return {
+          x: Math.round(c.x * 100) / 100, pv: Math.round(c.pv), pvMax: c.pvMax,
+          res, r: Math.round(Math.max(0, Math.min(1, v)) * 1000) / 1000, rv: Math.round(res === 'mana' ? c.mana : c[res]),
+          mana: c.forme && c.forme !== 'humanoide' && c.manaMax ? Math.round(c.mana / c.manaMax * 1000) / 1000 : null,
+          cp: c.cp || 0, forme: c.forme || null, furtif: furtif(s, c), fam: !!c.familier && c.pv > 0,
+          inc: k ? { nom: k.ab.nom, icone: k.ab.icone || null, p: c.incant ? Math.min(1, (s.t - k.debut) / Math.max(0.1, k.fin - k.debut)) : Math.max(0, (k.fin - s.t) / k.ab.canal), canal: !c.incant } : null,
+          cc: ctl ? { id: ctl, nom: aura(s, c, ctl).nom } : null,
+        };
+      }),
+    };
+  }
+
   function creerDuel(p1, p2, options) {
     options = options || {};
     const s = {
       t: 0, alea: creerAlea(options.graine || 1), fin: false,
       journal: options.journal ? [] : null, evenements: [], courbe: options.journal ? [] : null,
+      images: options.journal ? [] : null, actions: options.journal ? [] : null, coups: options.journal ? [] : null,
     };
     s.c = [creerCombattant(p1, 0, 0), creerCombattant(p2, 1, 20)];
     for (const c of s.c) {
@@ -1054,21 +1087,30 @@
     attaquesAuto(s);
     deplacer(s);
     if (s.courbe && Math.round(s.t * 10) % 5 === 0) s.courbe.push([s.t, pct(s.c[0]), pct(s.c[1])]);
+    if (s.images) s.images.push(image(s));
   }
   function resultat(s) {
     const [a, b] = s.c;
     const vainqueur = a.pv <= 0 && b.pv > 0 ? 1 : b.pv <= 0 && a.pv > 0 ? 0 : null;
     const r = { vainqueur, duree: s.t, pv: [pct(a), pct(b)], bilans: [a.bilan, b.bilan] };
-    if (s.journal) { r.journal = s.journal; r.courbe = s.courbe; r.evenements = s.evenements; r.noms = [a.nom, b.nom]; }
+    if (s.journal) {
+      r.journal = s.journal; r.courbe = s.courbe; r.evenements = s.evenements; r.noms = [a.nom, b.nom];
+      r.images = s.images; r.actions = s.actions; r.coups = s.coups;
+      r.familiers = s.c.map((c) => (c.familier ? { nom: c.familier.nom, icone: c.familier.icone } : null));
+    }
     return r;
   }
   function duel(p1, p2, options) {
     const s = creerDuel(p1, p2, options);
     if (s.courbe) s.courbe.push([0, 1, 1]);
+    if (s.images) s.images.push(image(s));
     while (!s.fin && s.t < DUREE_MAX) pas(s);
     if (s.courbe) s.courbe.push([s.t, pct(s.c[0]), pct(s.c[1])]);
     return resultat(s);
   }
+
+  // i-ème duel d'une série : sa graine, et le côté de départ qui alterne
+  function tirageSerie(graine, i) { return { g: (graine || 7) * 7919 + i * 104729, inverse: i % 2 === 1 }; }
 
   // Série de duels : taux de victoire de p1, nuls, durée moyenne, PV restants du vainqueur
   function serie(p1, p2, n, graine) {
@@ -1078,8 +1120,7 @@
     let meilleur = null;
     for (let i = 0; i < n; i++) {
       // Le côté de départ alterne : chacun commence une fois sur deux à gauche
-      const g = (graine || 7) * 7919 + i * 104729;
-      const inverse = i % 2 === 1;
+      const { g, inverse } = tirageSerie(graine, i);
       const r = inverse ? duel(p2, p1, { graine: g }) : duel(p1, p2, { graine: g });
       const moi = inverse ? 1 : 0;
       if (r.vainqueur === moi) { v++; pvFin += r.pv[moi]; } else if (r.vainqueur == null) nuls++;
@@ -1088,6 +1129,35 @@
       if (!meilleur) meilleur = { graine: g, inverse };
     }
     return { n, taux: v / n, tauxNul: nuls / n, duree: duree / n, pvVainqueur: v ? pvFin / v : 0, degats };
+  }
+
+  // Les duels d'une série (mêmes graines que serie) regroupés par issue pour p1, la plus fréquente d'abord.
+  // Chaque issue garde son duel le plus typique : durée et PV du vainqueur les plus proches de la médiane.
+  function scenarios(p1, p2, n, graine) {
+    n = n || 30;
+    const groupes = new Map();
+    for (let i = 0; i < n; i++) {
+      const { g, inverse } = tirageSerie(graine, i);
+      const r = inverse ? duel(p2, p1, { graine: g }) : duel(p1, p2, { graine: g });
+      const moi = inverse ? 1 : 0;
+      const issue = r.vainqueur == null ? 'nul' : r.vainqueur === moi ? 'victoire' : 'defaite';
+      if (!groupes.has(issue)) groupes.set(issue, []);
+      groupes.get(issue).push({ graine: g, inverse, duree: r.duree, pvMoi: r.pv[moi], pvAdv: r.pv[1 - moi], pvVainqueur: r.vainqueur == null ? 0 : r.pv[r.vainqueur] });
+    }
+    const mediane = (xs) => { const t = xs.slice().sort((a, b) => a - b); return t[Math.floor(t.length / 2)]; };
+    return [...groupes].map(([issue, ds]) => {
+      const md = mediane(ds.map((d) => d.duree)), mp = mediane(ds.map((d) => d.pvVainqueur));
+      const ecart = (d) => Math.abs(d.duree - md) / 10 + Math.abs(d.pvVainqueur - mp);
+      const representant = ds.reduce((m, d) => (ecart(d) < ecart(m) ? d : m));
+      return { issue, n: ds.length, part: ds.length / n, dureeMediane: md, representant };
+    }).sort((a, b) => b.n - a.n || (a.issue < b.issue ? -1 : 1));
+  }
+  // Rejoue le représentant d'un scénario avec la cinématique ; moi : côté de p1 dans ce duel
+  function rejouer(p1, p2, sc) {
+    const d = sc.representant;
+    const r = d.inverse ? duel(p2, p1, { graine: d.graine, journal: true }) : duel(p1, p2, { graine: d.graine, journal: true });
+    r.moi = d.inverse ? 1 : 0;
+    return r;
   }
 
   // Un duel raconté : on rejoue des graines jusqu'à tomber sur l'issue la plus fréquente
@@ -1115,7 +1185,7 @@
     return q;
   }
 
-  const Arene = { CLASSES, TYPES, SPECS_TYPES, KITS, profilType, adversairesTypes, duel, serie, duelRaconte, variante, creerAlea, ech, connait, creerCombattant, sansAccent, DUREE_MAX };
+  const Arene = { CLASSES, TYPES, SPECS_TYPES, KITS, profilType, adversairesTypes, duel, serie, scenarios, rejouer, duelRaconte, variante, creerAlea, ech, connait, creerCombattant, sansAccent, DUREE_MAX };
   racine.Arene = Arene;
   if (typeof module !== 'undefined' && module.exports) module.exports = Arene;
 })(typeof window !== 'undefined' ? window : globalThis);

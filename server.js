@@ -5,7 +5,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { convertirDruide } = require('./druide.js');
 const { convertirCombattant } = require('./combattant.js');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -142,12 +141,6 @@ async function fetchCharacter(c) {
   return state.character;
 }
 
-// Druide converti pour le simulateur ; une erreur de conversion ne bloque pas la fiche.
-function druideDe(c, raw) {
-  if (raw.class?.slug !== 'druid') return null;
-  try { return convertirDruide({ key: keyOf(c), region: c.region, armoryUrl: armoryUrl(c) }, raw); }
-  catch (e) { console.error(`Simulateur : ${keyOf(c)} non converti (${e.message})`); return null; }
-}
 // Toutes classes : fiche réduite pour le simulateur générique (public/simulateur/js/arene.js).
 function combattantDe(c, raw) {
   try { return convertirCombattant({ key: keyOf(c), region: c.region, armoryUrl: armoryUrl(c) }, raw); }
@@ -166,7 +159,7 @@ async function refreshOne(c) {
     const profile = simplify(raw);
     // Un échec sur les donjons ne bloque pas la fiche : on garde la dernière liste connue.
     profile.instances = await fetchInstances(c).catch(() => prev.profile?.instances || []);
-    cache[key] = { status: 'ok', fetchedAt: new Date().toISOString(), profile, druide: druideDe(c, raw), combattant: combattantDe(c, raw) };
+    cache[key] = { status: 'ok', fetchedAt: new Date().toISOString(), profile, combattant: combattantDe(c, raw) };
   } catch (e) {
     cache[key] = {
       ...prev,
@@ -200,20 +193,12 @@ function view() {
       ...c,
       armoryUrl: armoryUrl(c),
       refreshing: refreshing.has(keyOf(c)),
-      ...sansDruide(cache[keyOf(c)] || { status: 'pending' }),
+      ...sansCombattant(cache[keyOf(c)] || { status: 'pending' }),
     })),
   };
 }
-const sansDruide = ({ druide, combattant, ...reste }) => reste;
+const sansCombattant = ({ druide, combattant, ...reste }) => reste;
 
-// Druides au format du simulateur (public/simulateur/js/interface.js lit window.PERSONNAGES).
-function druides() {
-  return {
-    source: '/',
-    capture: lastFullRefresh,
-    personnages: characters.map((c) => cache[keyOf(c)]?.druide).filter(Boolean),
-  };
-}
 
 // Tous les personnages au format du simulateur générique.
 function combattants() {
@@ -260,7 +245,6 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
   try {
     if (p === '/api/characters' && req.method === 'GET') return send(res, 200, view());
-    if (p === '/api/druides' && req.method === 'GET') return send(res, 200, druides());
     if (p === '/api/combattants' && req.method === 'GET') return send(res, 200, combattants());
 
     if (p === '/api/characters' && req.method === 'POST') {
