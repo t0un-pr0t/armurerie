@@ -35,7 +35,7 @@ sans compilation.
 
 - **Classement** : les personnages de l'armurerie du même rang, classés par taux de victoire moyen contre
   les 17 spécialisations jouées en duel (à leur propre niveau), avec le joueur type de la spécialisation comme repère.
-- **Fiche comparée** : vos stats avec l'équipement porté, le meilleur hors donjon et la suite épique de donjon,
+- **Fiche comparée** : vos stats avec l'équipement porté, en pré-BiS (meilleur avant les donjons) et en BiS (suite épique de donjon),
   face au joueur type, avec votre place parmi les joueurs de votre rang et les victoires de chaque version.
 - **Équipement** : chaque objet porté comparé aux deux paliers de votre niveau, les trois emplacements les plus
   en retard mis en avant (voir plus bas).
@@ -57,21 +57,30 @@ Fonctionnement :
 - Le moteur toutes classes est `public/simulateur/js/arene.js` (Node et navigateur) : priorités par classe,
   sorts appris selon le niveau et les talents, contrôles et rendements décroissants, interruptions, familiers.
   Les joueurs types (`TYPES`, `SPECS_TYPES`) sont calés au niveau 60 puis ramenés au niveau voulu.
-- Paliers d'équipement (`public/simulateur/js/equipement.js`) :
+- Paliers d'équipement (`public/simulateur/js/equipement.js`), avec de vrais objets :
   - **porté** : la fiche telle quelle ;
-  - **meilleur hors donjon** : objets rares (bleus) de niveau d'objet égal au niveau du personnage ;
-  - **donjon épique** : suite épique de niveau d'objet égal au niveau + 5.
+  - **pré-BiS** : pour chaque emplacement, le meilleur objet obtenable sans donjon, raid ni rang JcJ
+    supérieur à 6 (quêtes, réputations, artisanat, hôtel des ventes), portable au niveau du personnage ;
+  - **BiS** : le meilleur objet, donjons compris ; à valeur proche, celui de la liste JcJ de la tranche
+    de champ de bataille (19, 29, 39, 49, 59, 60) passe en premier.
 
-  La fiche ne donne pas le niveau d'objet : il est estimé par le budget de stats de l'objet (norme 1,5,
-  selon la qualité et l'emplacement, comme dans WoW classique) et, pour une arme, par son DPS. Le personnage
-  rééquipé garde race, talents, enchantements, bijoux et reliques ; il reçoit la différence entre les stats
-  du palier (budget réparti selon la classe et la spécialisation) et celles des objets portés, une armure
-  et un DPS d'arme au niveau du palier. Il joue les mêmes duels, avec les mêmes graines, contre les 17
-  spécialisations, et apparaît comme repère dans le classement.
+  Les candidats viennent des listes de toutes les spés de la classe, dans `public/simulateur/data/bis/<classe>.json`,
+  produits par `node outils/bis.js` à partir de trois sources : listes BiS JcJ par tranche de
+  [ForeverBattlegrounds](https://foreverbattlegrounds.com/gearing/), équipement de montée et pré-raid de
+  [Timesaver](https://timesaver.gg/tools/wow-forever/leveling-gear/), statistiques Forever de chaque
+  objet sur [Wowhead](https://www.wowhead.com/forever) (noms en français quand ils existent). Relancer le script
+  pour rafraîchir. `node outils/bis.js cache` réutilise les pages déjà téléchargées.
+
+  La valeur d'un objet additionne ses statistiques pondérées pour la spé (répartition de `REPARTITION`,
+  PA, soins, mana, défense et armure des tanks, critique, DPS d'arme). Le personnage rééquipé
+  (`profilObjets`) reçoit la différence de stats, d'armure et d'arme. Il garde race, talents, enchantements,
+  bijoux et reliques. Il joue les mêmes duels, avec les mêmes graines, et apparaît comme repère dans le classement.
+  Sans liste pour la classe, l'ancienne estimation par niveau d'objet (`profilPalier`) sert de repli.
+- `/simulateur/bis.html` : les listes pré-BiS et BiS de chaque classe et spé, au niveau et dans la faction choisis.
 - Le bouton « Simuler » de chaque carte ouvre `/simulateur/?perso=<région>/<slug>`.
 
 Tests : `npm test` (arène, scénarios et cinématique, conversion des combattants sur les fiches figées
-de `tests/fixtures/`, paliers d'équipement, icônes du moteur).
+de `tests/fixtures/`, paliers d'équipement et listes BiS, icônes du moteur).
 
 ## Déploiement
 

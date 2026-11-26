@@ -801,7 +801,7 @@
       pvMax, pv: pvMax, manaMax: st.mana || 0, mana: st.mana || 0, rage: 0, energie: 100, cp: 0,
       armure: st.armure || 0, esquive: st.esquive || 0, parade: st.parade || 0, blocage: st.blocage || 0,
       valeurBlocage: n_({ niveau: n }, 40, 1.2),
-      crit: st.critique || 5, critSort: 2 + (st.intelligence || 0) / Math.max(10, n), critDistance: null,
+      crit: st.critique || 5, critSort: 2 + (st.intelligence || 0) / Math.max(10, n) + (st.critSorts || 0), critDistance: null,
       pa: st.pa || 0, ps: st.puissanceSorts || 0,
       pad: n * 2 + 2 * (st.agilite || 0) - 10,
       arme: st.arme && st.arme.max ? Object.assign({}, st.arme) : { min: n, max: n * 1.5, vitesse: 2 },
@@ -1059,12 +1059,18 @@
     const s = {
       t: 0, alea: creerAlea(options.graine || 1), fin: false,
       journal: options.journal ? [] : null, evenements: [], courbe: options.journal ? [] : null,
-      images: options.journal ? [] : null, actions: options.journal ? [] : null, coups: options.journal ? [] : null,
+      images: options.journal ? [] : null, actions: options.journal || options.actions ? [] : null, coups: options.journal ? [] : null,
     };
     s.c = [creerCombattant(p1, 0, 0), creerCombattant(p2, 1, 20)];
     for (const c of s.c) {
       c.ressource = c.classe === 'voleur' ? 'energie' : CLASSES[c.classe].ressource;
-      if (c.furtifDebut) { c.auras.furtif = { fin: 9999, nefaste: false, nom: 'Camouflage' }; if (c.classe === 'druide') c.forme = 'felin'; }
+      // En JcJ, le druide ne peut pas toujours se camoufler (saignements, malédictions, combat déjà engagé) :
+      // avec options.camouflage === false, il commence à découvert, déjà en félin.
+      if (c.furtifDebut && c.classe === 'druide' && options.camouflage === false) { c.forme = 'felin'; c.ouverture = 'combat'; }
+      else if (c.furtifDebut) {
+        c.auras.furtif = { fin: 9999, nefaste: false, nom: 'Camouflage' };
+        if (c.classe === 'druide') { c.forme = 'felin'; c.ouverture = 'camouflage'; }
+      }
       if (c.classe === 'druide' && c.ours) { c.forme = 'ours'; }
     }
     return s;
@@ -1092,12 +1098,12 @@
   function resultat(s) {
     const [a, b] = s.c;
     const vainqueur = a.pv <= 0 && b.pv > 0 ? 1 : b.pv <= 0 && a.pv > 0 ? 0 : null;
-    const r = { vainqueur, duree: s.t, pv: [pct(a), pct(b)], bilans: [a.bilan, b.bilan] };
+    const r = { vainqueur, duree: s.t, pv: [pct(a), pct(b)], bilans: [a.bilan, b.bilan], ouvertures: [a.ouverture || null, b.ouverture || null] };
     if (s.journal) {
       r.journal = s.journal; r.courbe = s.courbe; r.evenements = s.evenements; r.noms = [a.nom, b.nom];
       r.images = s.images; r.actions = s.actions; r.coups = s.coups;
       r.familiers = s.c.map((c) => (c.familier ? { nom: c.familier.nom, icone: c.familier.icone } : null));
-    }
+    } else if (s.actions) r.actions = s.actions;
     return r;
   }
   function duel(p1, p2, options) {
@@ -1109,26 +1115,86 @@
     return resultat(s);
   }
 
-  // i-ème duel d'une série : sa graine, et le côté de départ qui alterne
-  function tirageSerie(graine, i) { return { g: (graine || 7) * 7919 + i * 104729, inverse: i % 2 === 1 }; }
+  // i-ème duel d'une série : sa graine, le côté de départ qui alterne, et le camouflage du druide
+  // (deux duels sur quatre, chaque côté de départ avec et sans)
+  function tirageSerie(graine, i) { return { g: (graine || 7) * 7919 + i * 104729, inverse: i % 2 === 1, camouflage: Math.floor(i / 2) % 2 === 0 }; }
 
-  // Série de duels : taux de victoire de p1, nuls, durée moyenne, PV restants du vainqueur
-  function serie(p1, p2, n, graine) {
+  // Série de duels : taux de victoire de p1, nuls, durée moyenne, PV restants du vainqueur.
+  // options.enchainement : relève aussi les sorts de p1 pour en tirer son meilleur enchaînement.
+  function serie(p1, p2, n, graine, options) {
     n = n || 100;
+    const releve = options && options.enchainement ? [] : null;
     let v = 0, nuls = 0, duree = 0, pvFin = 0;
     const degats = {};
     let meilleur = null;
     for (let i = 0; i < n; i++) {
       // Le côté de départ alterne : chacun commence une fois sur deux à gauche
-      const { g, inverse } = tirageSerie(graine, i);
-      const r = inverse ? duel(p2, p1, { graine: g }) : duel(p1, p2, { graine: g });
+      const { g, inverse, camouflage } = tirageSerie(graine, i);
+      const o = { graine: g, camouflage, actions: !!releve };
+      const r = inverse ? duel(p2, p1, o) : duel(p1, p2, o);
       const moi = inverse ? 1 : 0;
       if (r.vainqueur === moi) { v++; pvFin += r.pv[moi]; } else if (r.vainqueur == null) nuls++;
+      if (releve) releve.push({ gagne: r.vainqueur === moi, nul: r.vainqueur == null, pvAdv: r.pv[1 - moi], ouverture: r.ouvertures[moi], seq: sequence(r.actions.filter((a) => a.camp === moi)) });
       duree += r.duree;
       for (const [nom, x] of Object.entries(r.bilans[moi].degats)) degats[nom] = (degats[nom] || 0) + x.total / n;
       if (!meilleur) meilleur = { graine: g, inverse };
     }
-    return { n, taux: v / n, tauxNul: nuls / n, duree: duree / n, pvVainqueur: v ? pvFin / v : 0, degats };
+    const r = { n, taux: v / n, tauxNul: nuls / n, duree: duree / n, pvVainqueur: v ? pvFin / v : 0, degats };
+    if (releve) {
+      r.enchainement = enchainement(releve);
+      // Druide : un enchaînement depuis le camouflage, un autre à découvert
+      if (releve.some((d) => d.ouverture)) {
+        r.ouvertures = ['camouflage', 'combat'].map((k) => {
+          const ds = releve.filter((d) => d.ouverture === k);
+          return ds.length ? Object.assign({ ouverture: k, taux: ds.filter((d) => d.gagne).length / ds.length }, enchainement(ds)) : null;
+        }).filter(Boolean);
+      }
+    }
+    return r;
+  }
+
+  // Sorts lancés, les répétitions consécutives regroupées (Griffe, Griffe → Griffe ×2)
+  function sequence(actions) {
+    const seq = [];
+    for (const a of actions) {
+      const d = seq[seq.length - 1];
+      if (d && d.nom === a.nom) d.fois++;
+      else seq.push({ nom: a.nom, icone: a.icone, genre: a.genre, fois: 1, t: a.t });
+    }
+    return seq;
+  }
+  // Meilleur enchaînement d'ouverture : étape par étape, le sort qui suit le plus souvent dans vos
+  // victoires (ou, sans victoire, dans le tiers de vos duels où l'adversaire finit le plus bas).
+  const LONGUEUR_ENCHAINEMENT = 8;
+  function enchainement(duels) {
+    const victoires = duels.filter((d) => d.gagne);
+    const base = victoires.length ? 'victoire' : 'serre';
+    const groupe = victoires.length ? victoires
+      : duels.slice().sort((a, b) => a.pvAdv - b.pvAdv).slice(0, Math.max(1, Math.ceil(duels.length / 3)));
+    let suivis = groupe;
+    const etapes = [];
+    for (let k = 0; k < LONGUEUR_ENCHAINEMENT; k++) {
+      const parNom = new Map();
+      for (const d of suivis) if (d.seq[k]) {
+        if (!parNom.has(d.seq[k].nom)) parNom.set(d.seq[k].nom, []);
+        parNom.get(d.seq[k].nom).push(d);
+      }
+      if (!parNom.size) break;
+      // Le plus suivi ; à égalité, celui qui vient le plus tôt
+      const tMoyen = (ds) => ds.reduce((s, d) => s + d.seq[k].t, 0) / ds.length;
+      const [nom, ds] = [...parNom].sort((a, b) => b[1].length - a[1].length || tMoyen(a[1]) - tMoyen(b[1]))[0];
+      // Au-delà de trois étapes, on s'arrête quand l'enchaînement ne représente plus 30 % du groupe
+      if (k >= 3 && ds.length < Math.max(2, Math.ceil(groupe.length * 0.3))) break;
+      const fois = ds.map((d) => d.seq[k].fois).sort((a, b) => a - b)[Math.floor(ds.length / 2)];
+      etapes.push({ nom, icone: ds[0].seq[k].icone, forme: ds[0].seq[k].genre === 'forme', fois, t: Math.round(tMoyen(ds) * 10) / 10 });
+      suivis = ds;
+    }
+    // Tous les duels (gagnés ou non) qui commencent ainsi : leur taux de victoire
+    const ouvrent = duels.filter((d) => etapes.every((e, k) => d.seq[k] && d.seq[k].nom === e.nom));
+    return {
+      base, etapes, appui: suivis.length, groupe: groupe.length, n: duels.length,
+      ouvrent: ouvrent.length, tauxOuverture: ouvrent.length ? ouvrent.filter((d) => d.gagne).length / ouvrent.length : 0,
+    };
   }
 
   // Les duels d'une série (mêmes graines que serie) regroupés par issue pour p1, la plus fréquente d'abord.
@@ -1137,12 +1203,12 @@
     n = n || 30;
     const groupes = new Map();
     for (let i = 0; i < n; i++) {
-      const { g, inverse } = tirageSerie(graine, i);
-      const r = inverse ? duel(p2, p1, { graine: g }) : duel(p1, p2, { graine: g });
+      const { g, inverse, camouflage } = tirageSerie(graine, i);
+      const r = inverse ? duel(p2, p1, { graine: g, camouflage }) : duel(p1, p2, { graine: g, camouflage });
       const moi = inverse ? 1 : 0;
       const issue = r.vainqueur == null ? 'nul' : r.vainqueur === moi ? 'victoire' : 'defaite';
       if (!groupes.has(issue)) groupes.set(issue, []);
-      groupes.get(issue).push({ graine: g, inverse, duree: r.duree, pvMoi: r.pv[moi], pvAdv: r.pv[1 - moi], pvVainqueur: r.vainqueur == null ? 0 : r.pv[r.vainqueur] });
+      groupes.get(issue).push({ graine: g, inverse, camouflage, duree: r.duree, pvMoi: r.pv[moi], pvAdv: r.pv[1 - moi], pvVainqueur: r.vainqueur == null ? 0 : r.pv[r.vainqueur] });
     }
     const mediane = (xs) => { const t = xs.slice().sort((a, b) => a - b); return t[Math.floor(t.length / 2)]; };
     return [...groupes].map(([issue, ds]) => {
@@ -1155,7 +1221,8 @@
   // Rejoue le représentant d'un scénario avec la cinématique ; moi : côté de p1 dans ce duel
   function rejouer(p1, p2, sc) {
     const d = sc.representant;
-    const r = d.inverse ? duel(p2, p1, { graine: d.graine, journal: true }) : duel(p1, p2, { graine: d.graine, journal: true });
+    const o = { graine: d.graine, camouflage: d.camouflage, journal: true };
+    const r = d.inverse ? duel(p2, p1, o) : duel(p1, p2, o);
     r.moi = d.inverse ? 1 : 0;
     return r;
   }

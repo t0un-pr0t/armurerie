@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BiS et pré-BiS · Armurerie Forever</title>
+<style>
+/* Mêmes couleurs que l'armurerie (sombre, or) ; une version claire pour les systèmes en mode clair. */
+:root {
+  --bg: #f3f0e8; --panel: #fffdf8; --panel-2: #ece7db; --line: #d9d1c1;
+  --text: #1f1d18; --muted: #686356; --gold: #8f600c; --gold-soft: #f3e4c4;
+  --bon: #2f7d33; --moyen: #8a6a00; --mauvais: #b3392f;
+  --vous: #a86c06; --adv: #2f62b8;
+  --q-mediocre: #7a7a7a; --q-commun: #3d3b36; --q-inhabituel: #1c7a12; --q-rare: #0a5fb8; --q-epique: #8434c4; --q-legendaire: #b85a00;
+  --retard: #fbe9e6;
+  --vie: #2f7d33; --mana: #2c63c4; --rage: #b8352a; --energie: #8a6a00; --sol: #e2dccc;
+  --ciel: #ece7db; --forme-ours: #8a5a34; --forme-felin: #c9a227;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --panel: #181b22; --panel-2: #20242d; --line: #2a2f3a;
+    --text: #e6e3da; --muted: #9a978d; --gold: #e8b85a; --gold-soft: #2e2716;
+    --bon: #6cc46a; --moyen: #d9b44a; --mauvais: #e0645a;
+    --vous: #e8b85a; --adv: #6f9be8;
+    --q-mediocre: #9d9d9d; --q-commun: #e6e3da; --q-inhabituel: #3cd62a; --q-rare: #2e8cf0; --q-epique: #b469f0; --q-legendaire: #ff8a1a;
+    --retard: #2d1a18;
+    --vie: #6cc46a; --mana: #6a9cf0; --rage: #ec6a5b; --energie: #e0bd3a; --sol: #262a33;
+    --ciel: #1c2029; --forme-ours: #b07a4c; --forme-felin: #d8b43c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1115; --panel: #181b22; --panel-2: #20242d; --line: #2a2f3a;
+  --text: #e6e3da; --muted: #9a978d; --gold: #e8b85a; --gold-soft: #2e2716;
+  --bon: #6cc46a; --moyen: #d9b44a; --mauvais: #e0645a;
+  --vous: #e8b85a; --adv: #6f9be8;
+  --q-mediocre: #9d9d9d; --q-commun: #e6e3da; --q-inhabituel: #3cd62a; --q-rare: #2e8cf0; --q-epique: #b469f0; --q-legendaire: #ff8a1a;
+  --retard: #2d1a18;
+  --vie: #6cc46a; --mana: #6a9cf0; --rage: #ec6a5b; --energie: #e0bd3a; --sol: #262a33;
+  --ciel: #1c2029; --forme-ours: #b07a4c; --forme-felin: #d8b43c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+img { max-width: 100%; }
+a { color: var(--gold); text-underline-offset: 2px; }
+h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+h2 { font-size: 1.15rem; }
+p { margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.discret { color: var(--muted); }
+.page { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+button, select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+button:hover, select:hover { border-color: var(--gold); }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+
+.entete { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; justify-content: space-between; padding-block: 16px; border-bottom: 1px solid var(--line); }
+.entete h1 { font-size: 22px; color: var(--gold); letter-spacing: .02em; }
+.entete .gauche { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+.filtres { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.filtres label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 0; }
+.filtres select, .filtres input { min-width: 0; }
+.filtres input { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; width: 5.5em; }
+.tranches { display: flex; flex-wrap: wrap; gap: 6px; }
+.tranches button { padding: 4px 9px; font-size: 13px; }
+.tranches button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: var(--gold-soft); }
+.bloc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.intro { color: var(--muted); font-size: 14px; max-width: 75ch; }
+.defile { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding: 4px 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.pre { color: var(--q-rare); } th.bis { color: var(--q-epique); }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.slot { white-space: nowrap; font-weight: 600; }
+.objet { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 2px 10px; min-width: 220px; }
+.objet img { width: 32px; height: 32px; border-radius: 5px; grid-row: span 3; background: var(--panel-2); }
+.objet a { font-weight: 600; text-decoration: none; } .objet a:hover { text-decoration: underline; }
+.objet .stats { font-size: 12.5px; }
+.objet .source { font-size: 12px; color: var(--muted); }
+.marque { display: inline-block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-right: 4px; color: var(--muted); white-space: nowrap; }
+.marque.liste { color: var(--gold); border-color: var(--gold); }
+.marque.donjon { color: var(--q-epique); border-color: currentColor; }
+.marque.classic { color: var(--mauvais); border-color: currentColor; }
+.vide { color: var(--muted); }
+.q-mediocre { color: var(--q-mediocre); } .q-commun { color: var(--q-commun); } .q-inhabituel { color: var(--q-inhabituel); }
+.q-rare { color: var(--q-rare); } .q-epique { color: var(--q-epique); } .q-legendaire { color: var(--q-legendaire); }
+.pied { font-size: 13px; color: var(--muted); display: grid; gap: 6px; max-width: 80ch; }
+@media (max-width: 640px) {
+  #liste thead { display: none; }
+  #liste tr { display: grid; grid-template-columns: minmax(0, 1fr); padding-block: 6px; border-bottom: 1px solid var(--line); }
+  #liste td { border: 0; padding: 4px 0; }
+  #liste td.slot { font-size: 1.05rem; color: var(--gold); }
+  #liste td[data-l]::before { content: attr(data-l); display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 4px; }
+  #liste td[data-l="Pré-BiS"]::before { color: var(--q-rare); } #liste td[data-l="BiS"]::before { color: var(--q-epique); }
+  .objet { min-width: 0; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="entete">
+    <div class="gauche">
+      <a href="./">← Simulateur</a>
+      <h1>BiS et pré-BiS</h1>
+    </div>
+  </header>
+
+  <section class="bloc">
+    <form class="filtres" id="filtres" onsubmit="return false">
+      <label>Classe <select id="classe"></select></label>
+      <label>Spécialisation <select id="spec"></select></label>
+      <label>Faction <select id="faction"><option value="alliance">Alliance</option><option value="horde">Horde</option></select></label>
+      <label>Niveau <input id="niveau" type="number" min="10" max="60" step="1" value="60" inputmode="numeric"></label>
+      <div class="tranches" id="tranches" role="group" aria-label="Tranches de champ de bataille"></div>
+    </form>
+    <p class="intro" id="intro">Chargement…</p>
+  </section>
+
+  <section class="bloc">
+    <div class="defile"><table id="liste"></table></div>
+  </section>
+
+  <footer class="pied">
+    <p><b class="q-rare">Pré-BiS</b> : le meilleur objet de l'emplacement obtenable sans donjon, raid ni haut rang JcJ (quêtes, réputations, artisanat, hôtel des ventes, rangs 1 à 6). <b class="q-epique">BiS</b> : le meilleur objet, donjons compris ; à valeur proche, celui de la liste JcJ de la tranche passe en premier.</p>
+    <p>Les deux sont choisis parmi les listes publiques de la classe (toutes spés) et comparés avec les statistiques Forever de chaque objet, pondérées pour la spécialisation. Un objet n'est proposé qu'à partir du niveau où il se porte.</p>
+    <p id="sources"></p>
+  </footer>
+</div>
+
+<script src="js/arene.js"></script>
+<script src="js/equipement.js"></script>
+<script src="js/bis.js"></script>
+</body>
+</html>

@@ -15,6 +15,12 @@ const ARBRES = {
   fire: 'feu', frost: 'givre', affliction: 'affliction', demonology: 'demonologie', destruction: 'destruction',
   balance: 'equilibre', 'feral-combat': 'farouche', feral: 'farouche',
 };
+// Quand la fiche ne donne pas l'identifiant de l'arbre : son nom français
+const NOMS_ARBRES = {
+  'magie de l ombre': 'ombre', ombre: 'ombre', 'combat farouche': 'farouche', 'maitrise des betes': 'maitrise',
+  arcane: 'arcanes', arcanes: 'arcanes', sacre: 'sacre', equilibre: 'equilibre',
+  amelioration: 'amelioration', elementaire: 'elementaire', demonologie: 'demonologie',
+};
 const sansAccent = (s) => String(s || '').replace(/œ/gi, 'oe').replace(/æ/gi, 'ae').normalize('NFD')
   .replace(/[̀-ͯ]/g, '').replace(/[’']/g, ' ').toLowerCase().replace(/\s+/g, ' ').trim();
 
@@ -34,6 +40,22 @@ function lireStats(st = {}) {
 
 const r1 = (x) => Math.round(x * 10) / 10;
 // Objets portés : ce qu'il faut pour estimer leur valeur (public/simulateur/js/equipement.js)
+// Effets « Équipé : augmente vos chances de coup critique de 1 % » (toucher, esquive…), en points de pourcentage.
+// Même lecture que outils/bis.js pour les objets des listes BiS.
+function pourcentages(descriptions) {
+  const pct = {};
+  for (const l of descriptions) {
+    if (!/^[ÉE]quip[^:]*:\s*augmente (vos|les) chances/i.test(l || '')) continue;
+    const m = /(\d+(?:[.,]\d+)?)\s?%/.exec(l);
+    if (!m) continue;
+    const sorts = /sorts/.test(l);
+    const k = /critique/.test(l) ? (sorts ? 'critSort' : 'crit') : /toucher/.test(l) ? (sorts ? 'touchSort' : 'toucher')
+      : /esquiv/.test(l) ? 'esquive' : /parer/.test(l) ? 'parade' : /bloquer/.test(l) ? 'blocage' : null;
+    if (k) pct[k] = (pct[k] || 0) + Number(m[1].replace(',', '.'));
+  }
+  return Object.keys(pct).length ? pct : undefined;
+}
+
 function equipement(gear) {
   return Object.entries(gear || {}).map(([emplacement, o]) => {
     const stats = {};
@@ -43,11 +65,12 @@ function equipement(gear) {
     }
     const w = o.weapon;
     return {
-      emplacement, emplacementNom: o.slot?.name || emplacement, type: o.inventory_type?.type || null,
+      emplacement, id: o.item?.id || o.id || null, emplacementNom: o.slot?.name || emplacement, type: o.inventory_type?.type || null,
       nom: o.name, qualite: o.quality?.type || null, niveauRequis: o.requirements?.level?.value || null,
       sousType: o.item_subclass?.name || null, armure: o.armor?.value || 0, stats,
       arme: w ? { min: w.damage.min_value, max: w.damage.max_value, vitesse: w.attack_speed.value / 1000, dps: r1(w.dps.value) } : null,
       icone: o.media?.content?.assets?.find((a) => a.key === 'icon')?.value || null,
+      pct: pourcentages((o.spells || []).map((x) => x.description)),
     };
   });
 }
@@ -60,7 +83,7 @@ const arme = (o) => {
 function convertirCombattant(entree, c) {
   const f = lireStats(c.stats);
   const specs = (c.specs || []).map((sp) => ({
-    id: ARBRES[sp.id] || sansAccent(sp.name).replace(/\s+/g, '-'), nom: sp.name, points: sp.spentPoints || 0,
+    id: ARBRES[sp.id] || NOMS_ARBRES[sansAccent(sp.name)] || sansAccent(sp.name).replace(/\s+/g, '-'), nom: sp.name, points: sp.spentPoints || 0,
     icone: sp.icon?.url || null,
   }));
   const principale = specs.reduce((m, s) => (s.points > (m?.points ?? -1) ? s : m), null);
@@ -99,4 +122,4 @@ function convertirCombattant(entree, c) {
   };
 }
 
-module.exports = { convertirCombattant, equipement, lireStats, CLASSES, ARBRES, sansAccent };
+module.exports = { convertirCombattant, equipement, pourcentages, lireStats, CLASSES, ARBRES, sansAccent };

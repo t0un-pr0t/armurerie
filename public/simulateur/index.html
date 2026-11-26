@@ -136,8 +136,45 @@ td.palier, th.palier { background: color-mix(in srgb, var(--panel-2) 55%, transp
 tr.bilan td { border-top: 2px solid var(--line); font-weight: 600; }
 tr.retard td { background: var(--retard); }
 tr.retard td:first-child { box-shadow: inset 3px 0 0 var(--mauvais); }
+.deja { font-size: 11px; color: var(--muted); border: 1px solid var(--line, currentColor); border-radius: 4px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }
+.mini { display: grid; gap: 0; } .mini + .mini { margin-top: 4px; } .mini small { font-size: 11px; color: var(--muted); }
+.discret.source { font-size: 12px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qui a.nom { text-decoration: none; } .qui a.nom:hover { text-decoration: underline; }
 .etiquette { font-size: 11px; color: var(--mauvais); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
 .jauge::after { display: none; }
+
+/* Enchaînements : une ligne par spécialisation adverse, les étapes reliées par des flèches */
+.enchainements { display: grid; gap: 20px; }
+.classe-groupe { display: grid; gap: 2px; }
+.classe-groupe h3 { display: flex; align-items: center; gap: 8px; font-size: 1rem; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.classe-groupe h3 img { width: 22px; height: 22px; border-radius: 4px; }
+.enchainement { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.enchainement:last-child { border-bottom: 0; }
+.ench-tete { display: grid; gap: 1px; align-self: start; padding-top: 4px; }
+.ench-tete .taux { font-size: 12px; }
+.chaine { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; row-gap: 6px; min-width: 0; }
+.chaine li { display: flex; align-items: center; }
+.chaine li + li::before { content: "→" / ""; color: var(--gold); font-weight: 700; padding: 0 7px; }
+.etape { display: inline-flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); font-size: 13px; line-height: 1.15; }
+.etape img { width: 26px; height: 26px; border-radius: 4px; flex: none; }
+.etape b { font-weight: 600; }
+.etape .fois { font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.etape small { display: block; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.etape.forme { border-style: dashed; background: transparent; }
+.enchainement .note { grid-column: 2 / -1; color: var(--muted); font-size: 12px; }
+.ouvertures { display: grid; gap: 12px; min-width: 0; }
+.ouverture { display: grid; gap: 6px; min-width: 0; }
+.ouverture + .ouverture { border-top: 1px dotted var(--line); padding-top: 10px; }
+.ouv-titre { font-size: 13px; font-weight: 600; }
+.ouv-titre > span:first-of-type { font-weight: 600; margin-left: 6px; }
+.ouv-titre .discret { font-weight: 400; font-size: 12px; }
+.enchainement .voir { align-self: start; }
+@media (max-width: 700px) {
+  .enchainement { grid-template-columns: minmax(0, 1fr) auto; }
+  .ench-tete { grid-column: 1; grid-row: 1; display: flex; gap: 10px; align-items: baseline; }
+  .enchainement .voir { grid-column: 2; grid-row: 1; }
+  .chaine, .enchainement .note, .ouvertures { grid-column: 1 / -1; }
+}
 
 /* Duel raconté */
 dialog { width: min(920px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); }
@@ -281,6 +318,7 @@ dialog::backdrop { background: rgb(0 0 0 / .55); }
     <div class="gauche">
       <a href="/">← Armurerie Forever</a>
       <h1>Simulateur</h1>
+      <a href="bis.html">BiS et pré-BiS</a>
     </div>
     <label>Personnage <select id="choix" aria-label="Personnage simulé"></select></label>
   </header>
@@ -306,7 +344,7 @@ dialog::backdrop { background: rgb(0 0 0 / .55); }
         </section>
 
         <section class="bloc large" aria-labelledby="h-equipement">
-          <h2 id="h-equipement">Équipement : porté, meilleur hors donjon, suite épique</h2>
+          <h2 id="h-equipement">Équipement : porté, pré-BiS, BiS</h2>
           <p class="intro" id="intro-equipement"></p>
           <div class="chiffres resume" id="resume-equipement"></div>
           <div class="defile"><table id="t-equipement"></table></div>
@@ -323,6 +361,12 @@ dialog::backdrop { background: rgb(0 0 0 / .55); }
           <h2 id="h-joueurs">Contre les joueurs de l'armurerie</h2>
           <p class="intro" id="intro-joueurs"></p>
           <div class="defile"><table id="t-joueurs"></table></div>
+        </section>
+
+        <section class="bloc large" aria-labelledby="h-enchainements">
+          <h2 id="h-enchainements">Enchaînements conseillés</h2>
+          <p class="intro" id="intro-enchainements"></p>
+          <div class="enchainements" id="enchainements"></div>
         </section>
 
         <section class="bloc large" aria-labelledby="h-types">

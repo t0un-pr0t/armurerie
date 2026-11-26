@@ -1,8 +1,8 @@
 /*
  * Équipement : ce que vaut chaque objet porté, et le personnage rééquipé selon trois paliers.
  *   - porté        : la fiche Blizzard telle quelle ;
- *   - hors donjon  : le meilleur obtenable sans donjon (bleus de quête, d'artisanat, de l'hôtel des ventes) ;
- *   - donjon       : la suite épique des donjons de son niveau.
+ *   - pré-BiS      : le meilleur obtenable avant les donjons (bleus de quête, d'artisanat, de l'hôtel des ventes) ;
+ *   - BiS          : le meilleur en donjon, la suite épique des donjons de son niveau.
  * La fiche ne donne pas le niveau d'objet : on l'estime par le « budget » de stats de l'objet
  * (règle de conception de WoW classique : somme des stats pondérées en norme 1,5, selon la qualité
  * et l'emplacement). Le personnage rééquipé garde sa fiche (race, talents, enchantements) et reçoit
@@ -46,11 +46,11 @@
   const PALIERS = [
     { id: 'porte', nom: 'Porté', court: 'porté' },
     {
-      id: 'horsDonjon', nom: 'Meilleur hors donjon', court: 'hors donjon', qualite: 'RARE', ilvl: (n) => n,
+      id: 'horsDonjon', nom: 'Pré-BiS', court: 'pré-BiS', qualite: 'RARE', ilvl: (n) => n,
       texte: 'objets rares (bleus) de niveau d\'objet égal à votre niveau : récompenses de quête, artisanat, hôtel des ventes',
     },
     {
-      id: 'donjon', nom: 'Meilleur en donjon', court: 'donjon épique', qualite: 'EPIC', ilvl: (n) => n + 5,
+      id: 'donjon', nom: 'BiS', court: 'BiS', qualite: 'EPIC', ilvl: (n) => n + 5,
       texte: 'suite épique (violette) de niveau d\'objet égal à votre niveau + 5 : les meilleurs butins des donjons de votre niveau',
     },
   ];
@@ -268,7 +268,292 @@
     return q;
   }
 
-  const Equipement = { PALIERS, EMPLACEMENTS, QUALITES, NOMS_QUALITE, GARDES, budget, niveauObjet, analyser, profilPalier, statsPortees, dpsArme };
+  // ------------------------------------------------------------------ listes BiS réelles
+  // data/bis/<classe>.json (outils/bis.js) : pour chaque spé, le BiS JcJ par tranche de champ de bataille
+  // (ForeverBattlegrounds) et le meilleur objet tous les 5 niveaux (Timesaver), avec les stats Forever des objets.
+  // Pré-BiS : le meilleur objet obtenable sans donjon, raid ni haut rang JcJ, au niveau du personnage.
+  // BiS : l'objet conseillé par la liste JcJ de sa tranche, sauf si la réserve de la spé a nettement mieux.
+  const TRANCHES = [19, 29, 39, 49, 59, 60];
+  const SLOTS = {
+    head: ['head'], neck: ['neck'], shoulder: ['shoulder'], back: ['back'], chest: ['chest'], wrist: ['wrist'], hand: ['hand'],
+    waist: ['waist'], leg: ['leg'], foot: ['foot'], finger: ['leftFinger', 'rightFinger'], trinket: ['leftTrinket', 'rightTrinket'],
+    weapon: ['weapon'], offHand: ['offHand'], ranged: ['ranged'],
+  };
+  const NOMS_SLOTS = {
+    head: 'Tête', neck: 'Cou', shoulder: 'Épaules', back: 'Dos', chest: 'Torse', wrist: 'Poignets', hand: 'Mains', waist: 'Taille',
+    leg: 'Jambes', foot: 'Pieds', leftFinger: 'Doigt', rightFinger: 'Doigt', leftTrinket: 'Bijou', rightTrinket: 'Bijou',
+    weapon: 'Arme', offHand: 'Main gauche', ranged: 'Distance',
+  };
+  const ORDRE = ['head', 'neck', 'shoulder', 'back', 'chest', 'wrist', 'hand', 'waist', 'leg', 'foot', 'leftFinger', 'rightFinger',
+    'leftTrinket', 'rightTrinket', 'weapon', 'offHand', 'ranged'];
+  const SOIGNEURS = { pretre: ['sacre', 'discipline'], paladin: ['sacre'], chaman: ['restauration'], druide: ['restauration'] };
+  // Part de chaque école de magie dans les dégâts de la spé (bonus « dégâts de feu » etc.)
+  const ECOLES = {
+    mage: { defaut: { FIRE: 0.5, FROST: 0.5 }, feu: { FIRE: 1 }, givre: { FROST: 1 }, arcanes: { ARCANE: 0.5, FROST: 0.3, FIRE: 0.2 } },
+    demoniste: { defaut: { SHADOW: 0.8, FIRE: 0.2 }, destruction: { SHADOW: 0.6, FIRE: 0.4 } },
+    pretre: { defaut: { SHADOW: 0.5, HOLY: 0.5 }, ombre: { SHADOW: 1 } },
+    chaman: { defaut: { NATURE: 0.7, FIRE: 0.3 } },
+    druide: { defaut: { NATURE: 0.5, ARCANE: 0.5 } },
+    paladin: { defaut: { HOLY: 1 } },
+  };
+  const partEcoles = (p) => { const e = ECOLES[p.classe]; return e ? e[p.spec] || e.defaut : {}; };
+  const iconeObjet = (nom) => (!nom ? null : /^https?:/.test(nom) ? nom : `https://render.worldofwarcraft.com/forever-eu/icons/56/${nom}.jpg`);
+  const niveauDispo = (o) => (o.niveauRequis != null ? o.niveauRequis : Math.max(1, (o.ilvl || 1) - 4));
+  const avantDonjon = (e) => !e.donjon && !e.raid && !(e.rang > 6);
+
+  // Poids de chaque stat pour la spé (1 = sa stat principale), tirés de la répartition des paliers
+  function poids(p) {
+    const rep = repartition(p);
+    const max = Math.max(...Object.values(rep));
+    const w = {};
+    for (const [k, v] of Object.entries(rep)) w[k] = v / max;
+    w.physique = Math.max(w.force || 0, w.agilite || 0, w.pa || 0);
+    // Pour un combattant physique, 2 PA coûtent un point de caractéristique (COUT.pa) et valent presque autant :
+    // sans ce plancher, une pièce « +18 puissance d'attaque » compterait pour rien chez le druide farouche ou le paladin
+    if (w.physique >= 0.5) w.pa = Math.max(w.pa || 0, 0.9 * w.physique);
+    w.soins = (SOIGNEURS[p.classe] || []).includes(p.spec) ? (w.ps || 0.8) : 0;
+    w.tank = p.spec === 'protection' || p.spec === 'farouche-tank' ? 1 : 0;
+    w.mana = (w.intelligence || 0) > 0 ? 1 : 0;
+    // Les objets Forever disent « coup critique » sans distinguer : pour un lanceur de sorts, c'est son critique des sorts
+    w.lanceur = (w.ps || 0) >= 0.5 && w.physique < 0.5;
+    return w;
+  }
+  // Stats d'un objet en grandeurs du simulateur (endurance, pa, ps, régénération…)
+  function statsObjet(o, p) {
+    const t = { force: 0, agilite: 0, endurance: 0, intelligence: 0, esprit: 0, pa: 0, ps: 0, soins: 0, armure: 0, mp5: 0, defense: 0 };
+    const ecoles = partEcoles(p);
+    for (const [k, v] of Object.entries(o.stats || {})) {
+      if (STAT_VERS[k]) t[STAT_VERS[k]] += v;
+      else if (k === 'SPELL_HEALING_DONE') t.soins += v;
+      else if (k === 'EXTRA_ARMOR') t.armure += v;
+      else if (k === 'RANGED_ATTACK_POWER') { if (p.classe === 'chasseur') t.pa += v; }
+      else if (k === 'MANA_REGENERATION') t.mp5 += v;
+      else if (k === 'DEFENSE_SKILL_RATING' || k === 'BLOCK_VALUE') t.defense += v;
+      else if (/_SPELL_DAMAGE$/.test(k)) t.ps += v * (ecoles[k.replace('_SPELL_DAMAGE', '')] || 0);
+    }
+    return t;
+  }
+  const critiques = (pct, w) => {
+    const x = { ...(pct || {}) };
+    if (w.lanceur && x.crit) { x.critSort = (x.critSort || 0) + x.crit; x.crit = 0; }
+    return x;
+  };
+  // Valeur d'un objet pour la spé, en points de caractéristique principale
+  function valeurObjet(o, p, w = poids(p)) {
+    if (!o) return 0;
+    const t = statsObjet(o, p);
+    const n = p.niveau || 60;
+    let v = 0;
+    for (const k of ['force', 'agilite', 'endurance', 'intelligence', 'esprit', 'pa', 'ps']) v += t[k] * COUT[k] * (w[k] || 0);
+    v += t.soins * 0.45 * w.soins + t.mp5 * 2.5 * w.mana * 0.5 + t.defense * w.tank + (o.armure || 0) * (w.tank ? 0.05 : 0.01);
+    const pct = critiques(o.pct, w);
+    // 1 % de critique ou de toucher ≈ 12 points de stat principale au niveau 60 (moins à bas niveau)
+    const critPhys = 12 * (n + 10) / 70 * w.physique;
+    v += (pct.crit || 0) * critPhys + (pct.toucher || 0) * critPhys * 0.6;
+    v += ((pct.critSort || 0) + (pct.touchSort || 0) * 0.6) * 12 * (n + 10) / 70 * (w.ps || 0);
+    v += ((pct.esquive || 0) + (pct.parade || 0) + (pct.blocage || 0) * 0.5) * 12 * w.tank;
+    if (o.arme && o.arme.dps && p.classe !== 'druide') {
+      const distance = ['RANGED', 'RANGEDRIGHT', 'THROWN'].includes(o.type) && o.sousType !== 'Baguette';
+      // 1 point de DPS d'arme vaut 14 de puissance d'attaque, soit 7 points de caractéristique
+      const part = p.classe === 'chasseur' ? (distance ? 1 : 0.25) : distance ? 0.3 : w.physique;
+      v += o.arme.dps * 7 * part;
+    }
+    return v;
+  }
+
+  // Ce qu'a la spé dans les listes : une entrée par objet et par emplacement, du côté de la faction
+  function reserve(d, p) {
+    const spec = d.specs[p.spec] || d.specs[Object.keys(d.specs).find((k) => !/tank/.test(k))];
+    if (!spec) return null;
+    const horde = /horde/i.test(p.faction || '');
+    const n = Math.min(60, p.niveau || 60);
+    const tranche = TRANCHES.find((t) => t >= n) || 60;
+    const parSlot = {};
+    const typesPropres = {};
+    const ajouter = (l, origine, conseille, propre) => {
+      const e = horde && l.h ? l.h : l.a;
+      const o = d.objets[e.id];
+      if (!o) return;
+      if (propre) (typesPropres[l.slot] = typesPropres[l.slot] || new Set()).add(o.type);
+      const liste = (parSlot[l.slot] = parSlot[l.slot] || new Map());
+      const deja = liste.get(o.id);
+      if (deja) { deja.conseille = deja.conseille || conseille; return; }
+      liste.set(o.id, { objet: { ...o, icone: iconeObjet(o.icone) }, source: e.source, donjon: e.donjon, raid: e.raid, rang: e.rang, classic: !!e.classic, origine, conseille });
+    };
+    // Listes de la spé d'abord, puis celles des autres spés de la classe (mêmes armures et armes portables)
+    const cle = Object.keys(d.specs).find((k) => d.specs[k] === spec);
+    for (const k of [cle, ...Object.keys(d.specs).filter((x) => x !== cle)]) {
+      const sp = d.specs[k], autre = k === cle ? '' : ' (autre spé)';
+      for (const [t, lignes] of Object.entries(sp.tranches)) for (const l of lignes) ajouter(l, `BiS JcJ ${t === '60' ? 'niveau 60' : `tranche ${t}`}${autre}`, !autre && Number(t) === tranche, !autre);
+      for (const [niv, lignes] of Object.entries(sp.montee)) for (const l of lignes) ajouter(l, `${niv === 'preraid' ? 'pré-raid niveau 60' : `montée, niveau ${niv}`}${autre}`, false, !autre);
+    }
+    return { spec, tranche, parSlot, typesPropres, cle };
+  }
+
+  // Le pré-BiS et le BiS de chaque emplacement pour ce personnage (classe, spé, niveau, faction)
+  function choixBis(p, d) {
+    if (!d || !d.specs) return null;
+    const r = reserve(d, p);
+    if (!r) return null;
+    const n = Math.min(60, p.niveau || 60);
+    const w = poids(p);
+    // Armes : seulement les types que la spé porte dans ses propres listes (bouclier du tank, deux mains du vindicte…)
+    const famille = (t) => (['WEAPON', 'WEAPONMAINHAND', 'WEAPONOFFHAND'].includes(t) ? 'UNE_MAIN' : t);
+    const typeOk = (slot, o) => {
+      const propres = r.typesPropres[slot];
+      if (!['weapon', 'offHand', 'ranged'].includes(slot) || !propres) return true;
+      if (slot === 'weapon' && o.type === 'WEAPONOFFHAND') return false;
+      if (slot === 'offHand' && o.type === 'WEAPONMAINHAND') return false;
+      return [...propres].some((t) => famille(t) === famille(o.type));
+    };
+    const cands = (slot, filtre) => [...((r.parSlot[slot] || new Map()).values())]
+      .filter((c) => niveauDispo(c.objet) <= n && typeOk(slot, c.objet) && (!filtre || filtre(c)))
+      .map((c) => ({ ...c, valeur: valeurObjet(c.objet, p, w) }));
+    // Les k meilleurs ; pour le BiS, l'objet de la liste JcJ de la tranche passe devant à 15 % près
+    const meilleurs = (liste, k, bonus) => liste.slice().sort((a, b) => b.valeur * (bonus && b.conseille ? 1.15 : 1) - a.valeur * (bonus && a.conseille ? 1.15 : 1)).slice(0, k);
+    const somme = (xs) => xs.reduce((s, x) => s + x.valeur, 0);
+    const choix = { pre: {}, bis: {} };
+    const poser = (palier, slot, xs) => SLOTS[slot].forEach((emp, i) => { choix[palier][emp] = xs[i] || null; });
+    for (const slot of Object.keys(SLOTS)) {
+      if (slot === 'weapon' || slot === 'offHand') continue;
+      const k = SLOTS[slot].length;
+      const pre = meilleurs(cands(slot, avantDonjon), k, false);
+      let bis = meilleurs(cands(slot), k, true);
+      if (somme(bis) < somme(pre)) bis = pre;
+      poser('pre', slot, pre);
+      poser('bis', slot, bis);
+    }
+    // Armes : une arme à deux mains, ou une à une main et la main gauche, selon ce qui vaut le plus
+    const armes = (filtre, bonus) => {
+      const main = cands('weapon', filtre);
+      const gauche = cands('offHand', filtre);
+      const deux = meilleurs(main.filter((c) => c.objet.type === 'TWOHWEAPON'), 1, bonus)[0];
+      const une = meilleurs(main.filter((c) => c.objet.type !== 'TWOHWEAPON'), 1, bonus)[0];
+      const mg = meilleurs(gauche.filter((c) => !une || c.objet.id !== une.objet.id), 1, bonus)[0];
+      const v1 = (une ? une.valeur : 0) + (mg ? mg.valeur : 0);
+      return deux && (deux.valeur >= v1 || !une) ? { weapon: deux, offHand: null } : { weapon: une || null, offHand: mg || null };
+    };
+    const ap = armes(avantDonjon, false);
+    let ab = armes(null, true);
+    const val = (a) => (a.weapon ? a.weapon.valeur : 0) + (a.offHand ? a.offHand.valeur : 0);
+    if (val(ab) < val(ap)) ab = ap;
+    Object.assign(choix.pre, ap);
+    Object.assign(choix.bis, ab);
+    const lignes = ORDRE.filter((emp) => choix.pre[emp] || choix.bis[emp])
+      .map((emp) => ({ emplacement: emp, emplacementNom: NOMS_SLOTS[emp], pre: choix.pre[emp], bis: choix.bis[emp] }));
+    return { spec: r.cle, tranche: r.tranche, niveau: n, horde: /horde/i.test(p.faction || ''), sources: r.spec.sources, maj: d.maj, lignes, pre: choix.pre, bis: choix.bis };
+  }
+
+  // Le personnage rééquipé avec les objets d'un choix (« pre » ou « bis ») ; bijoux et reliques gardés
+  function profilObjets(p, choix, id) {
+    if (!Array.isArray(p.equipement) || !choix) return null;
+    const pal = id === 'horsDonjon' ? 'pre' : 'bis';
+    const neufs = choix[pal];
+    const n = p.niveau || 1;
+    const w = poids(p);
+    const porte = new Map(p.equipement.map((o) => [o.emplacement, o]));
+    const nouveau = new Map(porte);
+    for (const [emp, c] of Object.entries(neufs)) {
+      if (!c || GARDES.includes(c.objet.type)) continue;
+      nouveau.set(emp, { ...c.objet, emplacement: emp, emplacementNom: NOMS_SLOTS[emp] });
+    }
+    const main = nouveau.get('weapon');
+    if (main && main.type === 'TWOHWEAPON') nouveau.delete('offHand');
+    else if (neufs.offHand === null && neufs.weapon && porte.get('offHand') && porte.get('weapon') && porte.get('weapon').type === 'TWOHWEAPON') nouveau.delete('offHand');
+    const total = (objets) => {
+      const t = { force: 0, agilite: 0, endurance: 0, intelligence: 0, esprit: 0, pa: 0, ps: 0, soins: 0, armure: 0, mp5: 0, defense: 0, objetsArmure: 0, crit: 0, critSort: 0, esquive: 0 };
+      for (const o of objets) {
+        if (GARDES.includes(o.type)) continue;
+        const s = statsObjet(o, p);
+        for (const k of Object.keys(s)) t[k] += s[k];
+        t.objetsArmure += o.armure || 0;
+        const pct = critiques(o.pct, w);
+        t.crit += pct.crit || 0; t.critSort += pct.critSort || 0; t.esquive += pct.esquive || 0;
+      }
+      return t;
+    };
+    const a = total(porte.values()), b = total(nouveau.values());
+    const d = {};
+    for (const k of Object.keys(a)) d[k] = b[k] - a[k];
+    // Le simulateur compte les soins pour moitié dans la puissance des sorts (comme statsPortees)
+    d.ps += d.soins * 0.5;
+
+    const q = JSON.parse(JSON.stringify(p));
+    const s = q.stats;
+    const r = (x) => Math.round(x);
+    s.pv = Math.max(1, r(s.pv + 10 * d.endurance));
+    if (s.mana > 0) s.mana = Math.max(0, r(s.mana + 15 * d.intelligence));
+    for (const k of ['force', 'agilite', 'endurance', 'intelligence', 'esprit']) s[k] = Math.max(0, r((s[k] || 0) + d[k]));
+    const [paF, paA] = PA_PAR[p.classe] || [1, 0];
+    const dPa = paF * d.force + paA * d.agilite + d.pa;
+    s.pa = Math.max(0, r(s.pa + dPa));
+    const dCrit = d.agilite / agiParCrit(p.classe, n);
+    s.critique = Math.max(0, Math.round((s.critique + dCrit + d.crit) * 10) / 10);
+    s.esquive = Math.max(0, Math.round((s.esquive + dCrit + d.esquive) * 10) / 10);
+    s.critSorts = Math.round(((s.critSorts || 0) + d.critSort) * 10) / 10;
+    s.puissanceSorts = Math.max(0, r((s.puissanceSorts || 0) + d.ps));
+    s.regenMana = Math.max(0, r((s.regenMana || 0) + d.mp5));
+    s.armure = Math.max(0, r(s.armure + d.objetsArmure + d.armure + 2 * d.agilite));
+
+    // Arme : les dégâts de la nouvelle arme, plus la puissance d'attaque (14 PA = 1 DPS)
+    const ancienne = porte.get('weapon');
+    if (s.arme && s.arme.vitesse) {
+      const v = s.arme.vitesse;
+      const base = Math.max(0, (s.arme.min + s.arme.max) / 2 / v - p.stats.pa / 14);
+      if (main && main.arme && (!ancienne || ancienne.id !== main.id || ancienne.nom !== main.nom)) {
+        const extra = ancienne && ancienne.arme ? Math.max(0, base - ancienne.arme.dps) : 0;
+        const nv = main.arme.vitesse;
+        const plus = (extra + s.pa / 14) * nv;
+        s.arme = { min: Math.max(1, r(main.arme.min + plus)), max: Math.max(2, r(main.arme.max + plus)), vitesse: nv };
+      } else {
+        s.arme = { min: Math.max(1, r(s.arme.min + dPa / 14 * v)), max: Math.max(2, r(s.arme.max + dPa / 14 * v)), vitesse: v };
+      }
+    }
+    const distA = porte.get('ranged'), distB = nouveau.get('ranged');
+    if (s.distance && distA && distA.arme && distB && distB.arme && distB !== distA) {
+      const f = distB.arme.dps / Math.max(1, distA.arme.dps);
+      s.distance = { min: r(s.distance.min * f), max: r(s.distance.max * f), vitesse: distB.arme.vitesse || s.distance.vitesse };
+    }
+    q.equipement = [...nouveau.values()];
+    q.cle = `${p.cle}#${id}`;
+    const pa = palierDe(id);
+    q.nom = `${p.nom} (${pa ? pa.court : id})`;
+    q.palier = id;
+    return q;
+  }
+
+  // Objet par objet : l'objet porté comparé au pré-BiS et au BiS de son emplacement (valeur pour la spé)
+  function analyserBis(p, choix) {
+    if (!Array.isArray(p.equipement) || !choix) return null;
+    const w = poids(p);
+    const porte = new Map(p.equipement.map((o) => [o.emplacement, o]));
+    const lignes = choix.lignes.map((l) => {
+      const o = porte.get(l.emplacement) || null;
+      const v = valeurObjet(o, p, w);
+      const vp = l.pre ? l.pre.valeur : 0, vb = l.bis ? l.bis.valeur : 0;
+      const garde = GARDES.includes((l.bis || l.pre || {}).objet?.type) || /Trinket/.test(l.emplacement);
+      const dps = (x) => (x && x.objet.arme ? x.objet.arme.dps : null);
+      return {
+        ...l, objet: o, valeur: v, garde,
+        ilvl: o ? niveauObjet(o, p.niveau) : null,
+        horsDonjon: vp > 0 ? Math.min(1.5, v / vp) : null, donjon: vb > 0 ? Math.min(1.5, v / vb) : null,
+        manque: garde ? 0 : Math.max(0, vp - v), manqueDonjon: garde ? 0 : Math.max(0, vb - v),
+        dps: o && o.arme ? o.arme.dps : (dps(l.pre) || dps(l.bis) ? 0 : null), dpsHorsDonjon: dps(l.pre), dpsDonjon: dps(l.bis),
+        identiquePre: !!(o && l.pre && (o.id === l.pre.objet.id || o.nom === l.pre.objet.nom)),
+        identiqueBis: !!(o && l.bis && (o.id === l.bis.objet.id || o.nom === l.bis.objet.nom)),
+      };
+    });
+    const comptees = lignes.filter((l) => !l.garde);
+    const somme = (f) => comptees.reduce((s, l) => s + f(l), 0);
+    const vp = somme((l) => (l.pre ? l.pre.valeur : 0)), vb = somme((l) => (l.bis ? l.bis.valeur : 0));
+    const v = somme((l) => (l.pre || l.bis ? l.valeur : 0));
+    return { lignes, horsDonjon: vp ? v / vp : null, donjon: vb ? v / vb : null, reel: true, choix };
+  }
+
+  const Equipement = {
+    PALIERS, EMPLACEMENTS, QUALITES, NOMS_QUALITE, GARDES, TRANCHES, budget, niveauObjet, analyser, profilPalier, statsPortees, dpsArme,
+    choixBis, profilObjets, analyserBis, valeurObjet, poids, iconeObjet,
+  };
   racine.Equipement = Equipement;
   if (typeof module !== 'undefined' && module.exports) module.exports = Equipement;
 })(typeof window !== 'undefined' ? window : globalThis);

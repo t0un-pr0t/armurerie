@@ -100,3 +100,38 @@ test('chaque icône citée par le moteur existe dans icones/', () => {
   const manquantes = [...noms].filter((n) => !fs.existsSync(path.join(dossier, n + '.jpg')));
   assert.deepStrictEqual(manquantes, []);
 });
+
+test('enchaînement : le relevé ne change pas la série, et les étapes viennent des victoires', () => {
+  const [a, b] = [A.profilType('voleur', 'combat', 60), A.profilType('mage', 'givre', 60)];
+  const s = A.serie(a, b, 20, 11);
+  const r = A.serie(a, b, 20, 11, { enchainement: true });
+  assert.strictEqual(r.taux, s.taux);
+  const e = r.enchainement;
+  assert.strictEqual(e.base, r.taux > 0 ? 'victoire' : 'serre');
+  assert.ok(e.etapes.length >= 1 && e.etapes.length <= 8);
+  assert.ok(e.appui >= 1 && e.appui <= e.groupe && e.ouvrent >= e.appui && e.ouvrent <= e.n);
+  for (let i = 1; i < e.etapes.length; i++) assert.notStrictEqual(e.etapes[i].nom, e.etapes[i - 1].nom, 'répétitions regroupées');
+  for (const x of e.etapes) assert.ok(x.fois >= 1 && x.t >= 0);
+  // Sans victoire possible, on garde les duels les plus serrés
+  const faible = A.profilType('mage', 'givre', 20);
+  const f = A.serie(faible, A.profilType('guerrier', 'armes', 60), 6, 3, { enchainement: true }).enchainement;
+  assert.strictEqual(f.base, 'serre');
+  assert.strictEqual(f.groupe, 2);
+});
+
+test('druide : un duel sur deux commence sans camouflage, chaque ouverture a son enchaînement', () => {
+  const d = A.profilType('druide', 'farouche', 60), m = A.profilType('mage', 'givre', 60);
+  const r = A.serie(d, m, 20, 11, { enchainement: true });
+  assert.deepStrictEqual(r.ouvertures.map((o) => [o.ouverture, o.n]), [['camouflage', 10], ['combat', 10]]);
+  assert.ok(Math.abs((r.ouvertures[0].taux + r.ouvertures[1].taux) / 2 - r.taux) < 1e-9);
+  assert.strictEqual(r.ouvertures[0].etapes[0].nom, 'Bond');
+  assert.notStrictEqual(r.ouvertures[1].etapes[0].nom, 'Bond');
+  // À découvert : pas de Camouflage, mais déjà en félin
+  const a = A.duel(d, m, { graine: 4, camouflage: false, journal: true });
+  assert.strictEqual(a.ouvertures[0], 'combat');
+  assert.strictEqual(a.images[0].c[0].forme, 'felin');
+  assert.strictEqual(a.images[0].c[0].furtif, false);
+  assert.strictEqual(A.duel(d, m, { graine: 4, journal: true }).images[0].c[0].furtif, true);
+  // Les autres classes ne changent pas
+  assert.strictEqual(A.serie(A.profilType('voleur', 'combat', 60), m, 4, 1, { enchainement: true }).ouvertures, undefined);
+});
